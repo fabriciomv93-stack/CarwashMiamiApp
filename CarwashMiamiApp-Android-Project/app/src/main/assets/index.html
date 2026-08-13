@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Carwash Miami</title>
+<style>
+:root{
+  --bg:#070b12;--panel:#101826;--panel2:#172235;--blue:#1e88ff;--blue2:#4db6ff;
+  --white:#f7fbff;--muted:#9cb0c8;--green:#23c483;--orange:#ff9f43;--red:#ff5d67;
+  --purple:#a66cff;--line:#26354b;--shadow:0 12px 30px rgba(0,0,0,.35)
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#05070b,#0a111c 45%,#06090f);color:var(--white);font-family:Arial,Helvetica,sans-serif;min-height:100vh}
+button,input,select,textarea{font:inherit}
+.hidden{display:none!important}
+.app{max-width:760px;margin:auto;min-height:100vh;padding-bottom:88px}
+.topbar{position:sticky;top:0;z-index:9;background:rgba(7,11,18,.94);backdrop-filter:blur(10px);padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;gap:10px;align-items:center}.logo{width:42px;height:42px;border-radius:14px;background:radial-gradient(circle at 30% 25%,#67c8ff,#1666d9 45%,#081429 70%);display:grid;place-items:center;font-weight:900;box-shadow:0 0 20px rgba(30,136,255,.4)}
+.brand b{display:block}.brand small{color:var(--muted)}
+.page{padding:16px}
+.hero{background:linear-gradient(135deg,#101a2a,#0a3c78 65%,#0b7bd6);padding:20px;border-radius:24px;box-shadow:var(--shadow);margin-bottom:16px}
+.hero h2{margin:0 0 4px}.hero p{margin:0;color:#d6ebff}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:var(--shadow)}
+.stat strong{font-size:26px;display:block;margin-top:8px}.muted{color:var(--muted)}
+.btn{border:0;border-radius:16px;padding:14px 16px;font-weight:800;color:white;background:linear-gradient(135deg,var(--blue),#0568d9);box-shadow:0 8px 18px rgba(30,136,255,.25);cursor:pointer}
+.btn.secondary{background:#18263a;color:#eaf5ff;box-shadow:none;border:1px solid #2f4665}
+.btn.green{background:linear-gradient(135deg,#1bbf75,#0a9360)}
+.btn.orange{background:linear-gradient(135deg,#ffb347,#f57c00)}
+.btn.red{background:linear-gradient(135deg,#ff6b74,#d93246)}
+.btn.full{width:100%}
+.section-title{display:flex;justify-content:space-between;align-items:center;margin:18px 2px 10px}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px}
+.item-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.badge{padding:7px 10px;border-radius:999px;font-size:12px;font-weight:800}
+.b-blue{background:#123e70;color:#8dccff}.b-green{background:#0d4d38;color:#7ef0bb}.b-orange{background:#5a3511;color:#ffc47a}.b-red{background:#5a2028;color:#ffadb4}.b-purple{background:#39225a;color:#d2aeff}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions .btn{padding:10px 12px;border-radius:12px;font-size:13px}
+.form-group{margin-bottom:13px}.form-group label{display:block;color:#c9d8e8;margin-bottom:6px;font-size:14px}
+.input{width:100%;padding:14px;background:#0b1320;color:white;border:1px solid #2b3c55;border-radius:14px;outline:none}
+.input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,136,255,.16)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nav{position:fixed;bottom:0;left:0;right:0;margin:auto;max-width:760px;background:rgba(10,16,27,.97);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding:8px 6px calc(8px + env(safe-area-inset-bottom));z-index:12}
+.nav button{border:0;background:transparent;color:#8ea2ba;padding:7px 2px;font-size:11px}.nav button span{display:block;font-size:21px;margin-bottom:2px}.nav button.active{color:#65bfff}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:min(760px,100%);max-height:92vh;overflow:auto;background:#0d1522;border:1px solid #2d3d54;border-radius:24px 24px 0 0;padding:18px}
+.checkgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;margin:16px 0}
+.check{background:#152238;border:1px solid #2c4260;border-radius:16px;padding:14px 6px}.check span{display:block;font-size:26px;margin-bottom:6px}
+.login-wrap{min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 50% 0,#0f4c91 0,#08111f 34%,#03060b 72%)}
+.login-card{width:min(420px,100%);background:rgba(12,20,33,.94);border:1px solid #2c4364;border-radius:28px;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.5)}
+.biglogo{width:92px;height:92px;margin:0 auto 14px;border-radius:28px;background:radial-gradient(circle at 30% 20%,#86dcff,#1b7ef0 42%,#09162b 72%);display:grid;place-items:center;font-size:25px;font-weight:900;box-shadow:0 0 30px rgba(30,136,255,.4)}
+.toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#142238;border:1px solid #37506f;color:white;padding:12px 16px;border-radius:14px;z-index:99;box-shadow:var(--shadow)}
+.small{font-size:12px}
+@media(max-width:420px){.two{grid-template-columns:1fr}.hero{padding:17px}.card{padding:14px}}
+</style>
+</head>
+<body>
+<div id="login" class="login-wrap">
+  <div class="login-card">
+    <div class="biglogo">CM</div>
+    <h1 style="text-align:center;margin:0">Carwash Miami</h1>
+    <p class="muted" style="text-align:center">Sistema interno de gestión</p>
+    <div class="form-group"><label>Usuario</label><input id="loginUser" class="input" placeholder="Administrador"></div>
+    <div class="form-group"><label>Contraseña</label><input id="loginPin" type="password" class="input" placeholder="••••••••"></div>
+    <button class="btn full" onclick="login()">Ingresar</button>
+    <p class="small muted" style="margin-top:14px">Administrador / Lavacar2026<br>Encargado / Lavado2026<br>Empleado / 1234</p>
+  </div>
+</div>
+
+<div id="main" class="app hidden">
+  <header class="topbar">
+    <div class="brand"><div class="logo">CM</div><div><b>Carwash Miami</b><small id="roleText">Sistema de gestión</small></div></div>
+    <button class="btn secondary" style="padding:9px 11px" onclick="logout()">Salir</button>
+  </header>
+  <main id="content"></main>
+  <nav class="nav">
+    <button data-page="home" onclick="go('home')"><span>⌂</span>Inicio</button>
+    <button data-page="vehicles" onclick="go('vehicles')"><span>🚗</span>Vehículos</button>
+    <button data-page="clients" onclick="go('clients')"><span>👥</span>Clientes</button>
+    <button data-page="agenda" onclick="go('agenda')"><span>📅</span>Agenda</button>
+    <button data-page="more" onclick="go('more')"><span>☰</span>Más</button>
+  </nav>
+</div>
+<div id="modal" class="modal hidden"><div id="sheet" class="sheet"></div></div>
+<div id="toast" class="toast hidden"></div>
+
+<script>
+const money=n=>'₡'+Number(n||0).toLocaleString('es-CR');
+const today=()=>new Date().toISOString().slice(0,10);
+const normalizePlate=s=>(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+const seed={
+ users:[
+  {id:1,user:'Administrador',pin:'Lavacar2026',role:'dueño',active:true},
+  {id:2,user:'Encargado',pin:'Lavado2026',role:'encargado',active:true},
+  {id:3,user:'Empleado',pin:'1234',role:'empleado',active:true}
+ ],
+ clients:[{id:1,name:'Juan Pérez',phone:'88888888'}],
+ vehicles:[{id:1,plate:'ABC123',clientId:1,brand:'Toyota',model:'Corolla',color:'Gris',category:'Pequeño/mediano'}],
+ jobs:[
+  {id:1,vehicleId:1,date:today(),service:'Premium',extras:['Sellador cerámico'],amount:28000,status:'En proceso',paid:false,notes:'Sin aromatizante',createdAt:Date.now()-3600000}
+ ],
+ debts:[], appointments:[], sealants:[],
+ settings:{
+  business:{name:'Carwash Miami',phone:'61926255',address:'50 mts oeste de la entrada de Vista Atenas',hours:'L-S 8am-8pm · D 8am-4pm'},
+  prices:{
+   'Pequeño/mediano':{Plus:10000,Premium:13000},
+   '4x4/Pickup':{Plus:12000,Premium:14000},
+   'Extra grande':{Plus:13000,Premium:16000},
+   'Moto':{Plus:5000,Premium:8000},
+   'Taxi pequeño':{Plus:5000,Premium:5000},
+   'Taxi mediano':{Plus:7000,Premium:7000}
+  },
+  extras:{'Gota seca':5000,'Chasis':10000,'Motor':10000,'Sellador cerámico':15000}
+ }
+};
+let db=JSON.parse(localStorage.getItem('cmpro_db')||'null')||seed;
+let currentUser=null, currentPage='home';
+function save(){localStorage.setItem('cmpro_db',JSON.stringify(db))}
+function byId(a,id){return a.find(x=>x.id==id)}
+function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),2200)}
+function login(){
+ let u=document.getElementById('loginUser').value.trim(), p=document.getElementById('loginPin').value;
+ let found=db.users.find(x=>x.active&&x.user.toLowerCase()==u.toLowerCase()&&x.pin==p);
+ if(!found)return toast('Usuario o contraseña incorrectos');
+ currentUser=found;document.getElementById('login').classList.add('hidden');document.getElementById('main').classList.remove('hidden');
+ document.getElementById('roleText').textContent=found.role[0].toUpperCase()+found.role.slice(1);go('home')
+}
+function logout(){currentUser=null;document.getElementById('main').classList.add('hidden');document.getElementById('login').classList.remove('hidden')}
+function go(p){currentPage=p;document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page==p));render()}
+function render(){({home:homePage,vehicles:vehiclesPage,clients:clientsPage,agenda:agendaPage,more:morePage}[currentPage]||homePage)()}
+function content(h){document.getElementById('content').innerHTML=h}
+function activeJobs(){return db.jobs.filter(j=>j.date==today()&&!['Entregado'].includes(j.status))}
+function homePage(){
+ let jobsToday=db.jobs.filter(j=>j.date==today()), pending=db.debts.filter(d=>!d.paid);
+ let sales=jobsToday.filter(j=>j.paid).reduce((s,j)=>s+j.amount,0);
+ let alerts=(currentUser.role=='empleado'?activeJobs().filter(j=>j.status=='Listo').length:pending.length+db.sealants.filter(s=>!s.renewed&&s.alertDate<=today()).length);
+ content(`<div class="page">
+  <section class="hero"><h2>Hola, ${currentUser.user}</h2><p>${new Date().toLocaleDateString('es-CR',{weekday:'long',day:'numeric',month:'long'})}</p></section>
+  <div class="grid">
+   <div class="card stat"><span>🚗 Vehículos hoy</span><strong>${jobsToday.length}</strong></div>
+   <div class="card stat"><span>🧽 En proceso</span><strong>${jobsToday.filter(j=>j.status=='En proceso').length}</strong></div>
+   <div class="card stat"><span>✅ Listos</span><strong>${jobsToday.filter(j=>j.status=='Listo').length}</strong></div>
+   <div class="card stat"><span>🔔 Alertas</span><strong>${alerts}</strong></div>
+   ${currentUser.role!='empleado'?`<div class="card stat"><span>💰 Ventas</span><strong>${money(sales)}</strong></div><div class="card stat"><span>🧾 Pendiente</span><strong>${money(pending.reduce((s,d)=>s+d.balance,0))}</strong></div>`:''}
+  </div>
+  <div style="margin-top:14px"><button class="btn full" onclick="openNewJob()">＋ Registrar vehículo</button></div>
+  <div class="section-title"><h3>Vehículos activos</h3><span class="muted">${activeJobs().length}</span></div>
+  <div class="list">${jobCards(activeJobs())||'<div class="card muted">No hay vehículos activos.</div>'}</div>
+ </div>`)
+}
+function jobCards(list){return list.map(j=>{
+ let v=byId(db.vehicles,j.vehicleId), c=byId(db.clients,v.clientId);
+ let badge=j.status=='Listo'?'b-green':j.status=='En proceso'?'b-orange':'b-blue';
+ return `<div class="item"><div class="item-head"><div><b>${v.plate} · ${v.brand||''} ${v.model||''}</b><div class="muted small">${c.name} · ${j.service}${j.extras.length?' + '+j.extras.join(', '):''}</div></div><span class="badge ${badge}">${j.status}</span></div>
+ <div class="actions">
+ ${j.status=='Recibido'?`<button class="btn orange" onclick="setStatus(${j.id},'En proceso')">Iniciar</button>`:''}
+ ${j.status=='En proceso'?`<button class="btn green" onclick="finalCheck(${j.id})">Marcar listo</button>`:''}
+ ${j.status=='Listo'&&currentUser.role!='empleado'?`<button class="btn" onclick="openPayment(${j.id})">Cobrar</button>`:''}
+ ${j.status=='Listo'&&currentUser.role=='empleado'?`<button class="btn secondary" onclick="requestPayment(${j.id})">Solicitar cobro</button>`:''}
+ <button class="btn secondary" onclick="jobDetail(${j.id})">Ver</button>
+ </div></div>`}).join('')}
+function vehiclesPage(){
+ content(`<div class="page"><div class="section-title"><h2>Vehículos</h2><button class="btn" onclick="openNewJob()">＋ Nuevo</button></div>
+ <input class="input" id="vsearch" placeholder="Buscar placa, cliente o teléfono" oninput="filterJobs(this.value)">
+ <div id="vehicleList" class="list" style="margin-top:12px">${jobCards(db.jobs.slice().reverse())}</div></div>`)
+}
+function filterJobs(q){
+ q=q.toLowerCase();let arr=db.jobs.filter(j=>{let v=byId(db.vehicles,j.vehicleId),c=byId(db.clients,v.clientId);return [v.plate,v.brand,v.model,c.name,c.phone].join(' ').toLowerCase().includes(q)});
+ document.getElementById('vehicleList').innerHTML=jobCards(arr)
+}
+function clientsPage(){
+ let cards=db.clients.map(c=>{let vs=db.vehicles.filter(v=>v.clientId==c.id);return `<div class="item"><b>${c.name}</b><div class="muted">${c.phone}</div><div class="small" style="margin-top:6px">${vs.map(v=>v.plate).join(' · ')||'Sin vehículos'}</div></div>`}).join('');
+ content(`<div class="page"><div class="section-title"><h2>Clientes</h2></div><div class="list">${cards}</div></div>`)
+}
+function agendaPage(){
+ let cards=db.appointments.map(a=>`<div class="item"><b>${a.date} · ${a.time}</b><div>${a.client} · ${a.plate}</div><div class="muted">${a.service}</div></div>`).join('');
+ content(`<div class="page"><div class="section-title"><h2>Agenda</h2><button class="btn" onclick="openAppointment()">＋ Cita</button></div><div class="list">${cards||'<div class="card muted">No hay citas registradas.</div>'}</div></div>`)
+}
+function morePage(){
+ let admin=currentUser.role!='empleado';
+ content(`<div class="page"><h2>Más opciones</h2><div class="list">
+ ${admin?`<div class="item" onclick="debtsPage()"><b>🧾 Cuentas por cobrar</b><div class="muted">Ver y marcar pagos</div></div>
+ <div class="item" onclick="sealantsPage()"><b>🛡 Selladores</b><div class="muted">Renovaciones y vencimientos</div></div>
+ <div class="item" onclick="usersPage()"><b>👤 Usuarios y permisos</b><div class="muted">Crear, desactivar y cambiar claves</div></div>
+ <div class="item" onclick="settingsPage()"><b>⚙️ Configuración</b><div class="muted">Precios y datos del negocio</div></div>`:''}
+ <div class="item" onclick="backup()"><b>💾 Exportar respaldo</b><div class="muted">Descarga una copia de los datos</div></div>
+ </div></div>`)
+}
+function openModal(h){document.getElementById('sheet').innerHTML=h;document.getElementById('modal').classList.remove('hidden')}
+function closeModal(){document.getElementById('modal').classList.add('hidden')}
+function openNewJob(){
+ openModal(`<h2>Registrar vehículo</h2>
+ <div class="form-group"><label>Placa *</label><input id="nplate" class="input" placeholder="ABC123" onblur="lookupPlate()"></div>
+ <div id="foundBox"></div>
+ <div class="form-group"><label>Cliente *</label><input id="nclient" class="input"></div>
+ <div class="form-group"><label>Teléfono *</label><input id="nphone" class="input" inputmode="tel"></div>
+ <div class="two">
+ <div class="form-group"><label>Marca</label><input id="nbrand" class="input"></div>
+ <div class="form-group"><label>Modelo</label><input id="nmodel" class="input"></div></div>
+ <div class="form-group"><label>Categoría *</label><select id="ncategory" class="input" onchange="calcTotal()">${Object.keys(db.settings.prices).map(x=>`<option>${x}</option>`)}</select></div>
+ <div class="form-group"><label>Servicio *</label><select id="nservice" class="input" onchange="calcTotal()"><option>Plus</option><option>Premium</option></select></div>
+ <div class="form-group"><label>Extras</label>${Object.keys(db.settings.extras).map(x=>`<label style="display:inline-block;margin:5px 10px 5px 0"><input type="checkbox" class="extra" value="${x}" onchange="calcTotal()"> ${x}</label>`).join('')}<label style="display:block;margin-top:8px"><input type="checkbox" id="tap" onchange="document.getElementById('tapPrice').classList.toggle('hidden',!this.checked);calcTotal()"> Tapicería (valoración)</label><input id="tapPrice" class="input hidden" type="number" placeholder="Precio de tapicería" oninput="calcTotal()"></div>
+ <div class="form-group"><label>Observaciones / objetos visibles</label><textarea id="nnotes" class="input" rows="2"></textarea></div>
+ <div class="card"><b>Total estimado</b><strong id="totalLabel" style="float:right">${money(10000)}</strong></div>
+ <div class="actions"><button class="btn secondary" onclick="closeModal()">Cancelar</button><button class="btn" onclick="saveJob()">Guardar ingreso</button></div>`)
+ calcTotal()
+}
+function lookupPlate(){
+ let p=normalizePlate(document.getElementById('nplate').value),v=db.vehicles.find(x=>x.plate==p);
+ if(v){let c=byId(db.clients,v.clientId);document.getElementById('nclient').value=c.name;document.getElementById('nphone').value=c.phone;document.getElementById('nbrand').value=v.brand||'';document.getElementById('nmodel').value=v.model||'';document.getElementById('ncategory').value=v.category;document.getElementById('foundBox').innerHTML='<div class="card b-blue">Vehículo encontrado. Se usará el registro existente.</div>';calcTotal()}
+ else document.getElementById('foundBox').innerHTML=''
+}
+function calcTotal(){
+ let cat=document.getElementById('ncategory')?.value,serv=document.getElementById('nservice')?.value;
+ let total=(db.settings.prices[cat]?.[serv]||0);
+ document.querySelectorAll('.extra:checked').forEach(e=>{if(!(e.value=='Sellador cerámico'&&cat=='Extra grande')) total+=db.settings.extras[e.value]||0});
+ if(document.getElementById('tap')?.checked)total+=Number(document.getElementById('tapPrice').value||0);
+ document.getElementById('totalLabel').textContent=money(total);return total
+}
+function saveJob(){
+ let plate=normalizePlate(document.getElementById('nplate').value),name=document.getElementById('nclient').value.trim(),phone=document.getElementById('nphone').value.trim();
+ if(!plate||!name||!phone)return toast('Completa placa, cliente y teléfono');
+ let client=db.clients.find(c=>c.phone.replace(/\D/g,'')==phone.replace(/\D/g,''));
+ if(!client){client={id:Date.now(),name,phone};db.clients.push(client)}
+ let vehicle=db.vehicles.find(v=>v.plate==plate);
+ if(!vehicle){vehicle={id:Date.now()+1,plate,clientId:client.id,brand:document.getElementById('nbrand').value,model:document.getElementById('nmodel').value,color:'',category:document.getElementById('ncategory').value};db.vehicles.push(vehicle)}
+ let extras=[...document.querySelectorAll('.extra:checked')].map(e=>e.value);if(document.getElementById('tap').checked)extras.push('Tapicería');
+ let job={id:Date.now()+2,vehicleId:vehicle.id,date:today(),service:document.getElementById('nservice').value,extras,amount:calcTotal(),status:'Recibido',paid:false,notes:document.getElementById('nnotes').value,createdAt:Date.now(),createdBy:currentUser.user};
+ db.jobs.push(job);
+ if(extras.includes('Sellador cerámico')){let d=new Date();d.setMonth(d.getMonth()+3);let a=new Date(d);a.setDate(a.getDate()-15);db.sealants.push({id:Date.now()+3,jobId:job.id,vehicleId:vehicle.id,start:today(),end:d.toISOString().slice(0,10),alertDate:a.toISOString().slice(0,10),renewed:false})}
+ save();closeModal();toast('Vehículo registrado');go('home')
+}
+function setStatus(id,status){let j=byId(db.jobs,id);j.status=status;save();render()}
+function finalCheck(id){openModal(`<h2 style="text-align:center">🚗 Control final</h2><p class="muted" style="text-align:center">Revisa en pocos segundos</p><div class="checkgrid">
+ <div class="check"><span>📦</span>Objetos</div><div class="check"><span>🪟</span>Vidrios</div><div class="check"><span>🧹</span>Aspirado</div><div class="check"><span>🦶</span>Tapetes</div><div class="check"><span>🛞</span>Llantas</div><div class="check"><span>⭐</span>Extras</div>
+ </div><button class="btn green full" onclick="confirmReady(${id})">✓ Marcar como listo</button><button class="btn secondary full" style="margin-top:9px" onclick="closeModal()">Volver</button>`)}
+function confirmReady(id){setStatus(id,'Listo');closeModal();toast('Vehículo listo para revisión')}
+function requestPayment(id){toast('Cobro solicitado al encargado')}
+function openPayment(id){
+ let j=byId(db.jobs,id),v=byId(db.vehicles,j.vehicleId);
+ openModal(`<h2>Cobrar ${v.plate}</h2><div class="card"><div>${j.service}${j.extras.length?' + '+j.extras.join(', '):''}</div><strong style="font-size:28px">${money(j.amount)}</strong></div>
+ <div class="form-group"><label>Monto recibido</label><input id="payAmount" type="number" class="input" value="${j.amount}"></div>
+ <div class="form-group"><label>Método</label><select id="payMethod" class="input"><option>Efectivo</option><option>SINPE</option><option>Tarjeta</option><option>Transferencia</option></select></div>
+ <button class="btn green full" onclick="savePayment(${id})">Registrar pago</button><button class="btn secondary full" style="margin-top:9px" onclick="markPending(${id})">Dejar pendiente</button>`)
+}
+function savePayment(id){
+ let j=byId(db.jobs,id),amt=Number(document.getElementById('payAmount').value||0);
+ if(amt>=j.amount){j.paid=true;j.status='Entregado';j.paymentMethod=document.getElementById('payMethod').value;j.paidAt=Date.now()}
+ else{j.paid=false;j.status='Entregado';db.debts.push({id:Date.now(),jobId:j.id,balance:j.amount-amt,paid:false,created:today()})}
+ save();closeModal();toast('Pago registrado');go('home')
+}
+function markPending(id){let j=byId(db.jobs,id);j.status='Entregado';db.debts.push({id:Date.now(),jobId:j.id,balance:j.amount,paid:false,created:today()});save();closeModal();toast('Cuenta pendiente registrada');go('home')}
+function jobDetail(id){let j=byId(db.jobs,id),v=byId(db.vehicles,j.vehicleId),c=byId(db.clients,v.clientId);openModal(`<h2>${v.plate}</h2><div class="card"><b>${c.name}</b><div class="muted">${c.phone}</div><hr style="border-color:#26354b"><div>${j.service} · ${j.extras.join(', ')||'Sin extras'}</div>${currentUser.role!='empleado'?`<h3>${money(j.amount)}</h3>`:''}<p>${j.notes||'Sin observaciones'}</p><span class="badge b-blue">${j.status}</span></div><button class="btn secondary full" onclick="closeModal()">Cerrar</button>`)}
+function debtsPage(){
+ let arr=db.debts.filter(d=>!d.paid);content(`<div class="page"><button class="btn secondary" onclick="go('more')">← Volver</button><h2>Cuentas por cobrar</h2><div class="list">${arr.map(d=>{let j=byId(db.jobs,d.jobId),v=byId(db.vehicles,j.vehicleId),c=byId(db.clients,v.clientId);return `<div class="item"><b>${v.plate} · ${c.name}</b><h3>${money(d.balance)}</h3><button class="btn green" onclick="payDebt(${d.id})">Marcar cancelado</button></div>`}).join('')||'<div class="card muted">No hay cuentas pendientes.</div>'}</div></div>`)}
+function payDebt(id){let d=byId(db.debts,id);d.paid=true;d.paidAt=Date.now();save();debtsPage();toast('Pago cancelado')}
+function sealantsPage(){content(`<div class="page"><button class="btn secondary" onclick="go('more')">← Volver</button><h2>Selladores</h2><div class="list">${db.sealants.map(s=>{let v=byId(db.vehicles,s.vehicleId),j=byId(db.jobs,s.jobId);return `<div class="item"><b>${v.plate}</b><div>Vence: ${s.end}</div><div class="muted">${s.renewed?'Renovado':s.alertDate<=today()?'Próximo a vencer':'Vigente'}</div>${!s.renewed?`<button class="btn" style="margin-top:10px" onclick="renewSealant(${s.id})">Marcar renovación</button>`:''}</div>`}).join('')||'<div class="card muted">No hay selladores registrados.</div>'}</div></div>`)}
+function renewSealant(id){byId(db.sealants,id).renewed=true;save();sealantsPage()}
+function openAppointment(){openModal(`<h2>Nueva cita</h2><div class="form-group"><label>Fecha</label><input id="adate" type="date" class="input" value="${today()}"></div><div class="form-group"><label>Hora</label><input id="atime" type="time" class="input" value="09:00"></div><div class="form-group"><label>Cliente</label><input id="aclient" class="input"></div><div class="form-group"><label>Placa</label><input id="aplate" class="input"></div><div class="form-group"><label>Servicio</label><input id="aservice" class="input"></div><button class="btn full" onclick="saveAppointment()">Guardar cita</button>`)}
+function saveAppointment(){db.appointments.push({id:Date.now(),date:adate.value,time:atime.value,client:aclient.value,plate:normalizePlate(aplate.value),service:aservice.value});save();closeModal();agendaPage()}
+function usersPage(){content(`<div class="page"><button class="btn secondary" onclick="go('more')">← Volver</button><div class="section-title"><h2>Usuarios</h2><button class="btn" onclick="newUser()">＋ Crear</button></div><div class="list">${db.users.map(u=>`<div class="item"><b>${u.user}</b><div class="muted">${u.role} · ${u.active?'Activo':'Desactivado'}</div>${u.id!=currentUser.id?`<button class="btn ${u.active?'red':'green'}" style="margin-top:10px" onclick="toggleUser(${u.id})">${u.active?'Desactivar':'Activar'}</button>`:''}</div>`).join('')}</div></div>`)}
+function newUser(){openModal(`<h2>Crear usuario</h2><div class="form-group"><label>Usuario</label><input id="uuser" class="input"></div><div class="form-group"><label>Clave/PIN</label><input id="upin" class="input"></div><div class="form-group"><label>Rol</label><select id="urole" class="input"><option>empleado</option><option>encargado</option></select></div><button class="btn full" onclick="saveUser()">Guardar</button>`)}
+function saveUser(){db.users.push({id:Date.now(),user:uuser.value.trim(),pin:upin.value,role:urole.value,active:true});save();closeModal();usersPage()}
+function toggleUser(id){let u=byId(db.users,id);u.active=!u.active;save();usersPage()}
+function settingsPage(){content(`<div class="page"><button class="btn secondary" onclick="go('more')">← Volver</button><h2>Configuración</h2><div class="card"><b>Datos del negocio</b><p>${db.settings.business.name}<br>${db.settings.business.phone}<br>${db.settings.business.address}<br>${db.settings.business.hours}</p></div><h3>Precios</h3><div class="list">${Object.entries(db.settings.prices).map(([k,v])=>`<div class="item"><b>${k}</b><div class="two"><label>Plus<input class="input" type="number" value="${v.Plus}" onchange="updatePrice('${k}','Plus',this.value)"></label><label>Premium<input class="input" type="number" value="${v.Premium}" onchange="updatePrice('${k}','Premium',this.value)"></label></div></div>`).join('')}</div></div>`)}
+function updatePrice(cat,serv,val){db.settings.prices[cat][serv]=Number(val);save();toast('Precio actualizado')}
+function backup(){
+ let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='respaldo-carwash-miami.json';a.click();URL.revokeObjectURL(a.href)
+}
+</script>
+</body>
+</html>
