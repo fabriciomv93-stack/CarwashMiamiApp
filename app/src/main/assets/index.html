@@ -149,10 +149,40 @@ button{cursor:pointer}
 .cancel,.delete{padding:11px;border:0;border-radius:8px;font-weight:900}.cancel{background:#1a1a1d;color:#fff}.delete{background:#da2630;color:#fff}
 .toast{position:fixed;left:50%;bottom:calc(115px + var(--safe));transform:translateX(-50%);z-index:120;background:#07263a;border:1px solid #2474a2;padding:10px 14px;border-radius:8px;font-size:12px}
 .hidden{display:none!important}
+
+/* ===== V2: acceso, control diario y actualización segura ===== */
+.loginScreen{min-height:100vh;display:grid;place-items:center;padding:24px;background:
+radial-gradient(circle at 50% 18%,#0a4e7d55,transparent 30%),linear-gradient(180deg,#00050a,#020b12)}
+.loginCard{width:min(92vw,420px);padding:25px 20px;border:1px solid #1a526f;border-radius:20px;background:linear-gradient(180deg,#071621,#040b11);box-shadow:0 0 22px #0bb7ff33,0 24px 55px #000b}
+.loginBrand{text-align:center;margin-bottom:22px}.loginBrand .bigLogo{font-size:30px;font-weight:1000;letter-spacing:.7px;text-shadow:0 0 18px #18baff55}.loginBrand .bigLogo span{color:#2bc8ff}.loginBrand small{color:#7896a9}
+.loginHint{margin-top:13px;padding:9px;border:1px solid #16384d;border-radius:9px;color:#8ba2b2;font-size:10px;text-align:center}
+.quickDaily{margin-top:12px;padding:13px;border:1px solid #195071;border-radius:14px;background:linear-gradient(135deg,#06111b,#08304c);box-shadow:0 0 20px #0aaeff20}
+.quickDailyTop{display:flex;justify-content:space-between;align-items:center}.quickDaily h3{margin:0;font-size:15px}.quickDaily .money{color:#41d1ff;font-size:22px;font-weight:1000}
+.quickDaily small{color:#7f9aae}
+.dailySummary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.dailyStat{padding:12px;border:1px solid #17435c;border-radius:11px;background:#06121b;text-align:center}.dailyStat b{display:block;font-size:23px;color:#39c9ff}.dailyStat small{font-size:9px;color:#8199aa}
+.serviceGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}.serviceChip{position:relative}.serviceChip input{position:absolute;opacity:0;pointer-events:none}.serviceChip span{display:block;padding:11px 8px;border:1px solid #173b52;border-radius:9px;background:#06121b;color:#cfe1ec;font-size:10px;font-weight:850;text-align:center}.serviceChip input:checked+span{border-color:#30caff;background:linear-gradient(#0b7fcb,#07548e);box-shadow:0 0 11px #0fb4ff66;color:white}
+.recordCard{padding:11px 12px;margin-top:8px}.recordTop{display:flex;justify-content:space-between;gap:10px}.recordAmount{color:#39d5ff;font-weight:1000;font-size:16px}.recordServices{color:#83a0b3;font-size:9px;margin-top:5px;line-height:1.4}.recordActions{display:flex;gap:6px;margin-top:9px}.tinyBtn{flex:1;padding:8px;border-radius:8px;border:1px solid #20445c;background:#07131d;color:#cae2ef;font-size:9px;font-weight:850}.tinyBtn.red{border-color:#6e2931;color:#ff7580}
+.secondaryBtn{width:100%;padding:12px;margin-top:9px;border-radius:9px;border:1px solid #20445d;background:#07131d;color:#d8e9f3;font-weight:900}
+.securityNote{padding:10px;border-radius:9px;border:1px solid #29465a;background:#061019;color:#8097a9;font-size:10px;margin-top:10px}
+
 </style>
 </head>
 <body>
-<div class="app">
+<div id="loginScreen" class="loginScreen">
+  <div class="loginCard">
+    <div class="loginBrand">
+      <div class="bigLogo">CARWASH<span>MIAMI</span></div>
+      <small>Acceso privado · Gestión premium</small>
+    </div>
+    <div class="formLabel">Usuario</div>
+    <input id="loginUser" class="input" value="admin" autocomplete="username">
+    <div class="formLabel">Contraseña</div>
+    <input id="loginPass" class="input" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginApp()">
+    <button type="button" class="glowBtn" onclick="loginApp()">INGRESAR</button>
+    <div class="loginHint">Primer acceso: usuario <b>admin</b> · contraseña <b>admin</b></div>
+  </div>
+</div>
+<div id="mainApp" class="app hidden">
   <div id="hero" class="hero">
     <div class="heroGlow">
       <div class="eyebrow">GESTIÓN PREMIUM</div>
@@ -172,21 +202,63 @@ button{cursor:pointer}
 <div id="modal" class="hidden"></div>
 <script>
 const KEY='cm_ceramico_clients_v1';
+const DAILY_KEY='cm_daily_records_v1';
 let clients=JSON.parse(localStorage.getItem(KEY)||'[]').map(c=>({...c,periodMonths:c.periodMonths??2,periodDays:c.periodDays??15}));
-let page='home',editId=null,period={m:2,d:15};
+let dailyRecords=JSON.parse(localStorage.getItem(DAILY_KEY)||'[]');
+let page='login',editId=null,editRecordId=null,period={m:2,d:15};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function save(){localStorage.setItem(KEY,JSON.stringify(clients));window.Android?.syncData?.(JSON.stringify(clients))}
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(clients));
+  localStorage.setItem(DAILY_KEY,JSON.stringify(dailyRecords));
+  window.Android?.syncData?.(JSON.stringify(clients));
+}
 function calc(iso,m,d){let[y,mo,da]=iso.split('-').map(Number),x=new Date(y,mo-1,da),day=x.getDate();x.setDate(1);x.setMonth(x.getMonth()+m);x.setDate(Math.min(day,new Date(x.getFullYear(),x.getMonth()+1,0).getDate()));x.setDate(x.getDate()+d);return x.toISOString().slice(0,10)}
 function fmt(i){if(!i)return'—';let[y,m,d]=i.split('-');return `${d}/${m}/${y}`}
 function diff(i){let t=new Date();t.setHours(0,0,0,0);let[y,m,d]=i.split('-').map(Number);return Math.round((new Date(y,m-1,d)-t)/86400000)}
 function label(c){let m=c.periodMonths||0,d=c.periodDays||0;return `${m?m+' mes'+(m==1?'':'es'):''}${m&&d?' + ':''}${d?d+' día'+(d==1?'':'s'):''}`}
 function initials(n){return n.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()}
 function toast(m){let t=$('toast');t.textContent=m;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),2000)}
+function loginApp(){
+  const u=$('loginUser').value.trim(),p=$('loginPass').value;
+  let ok=false;
+  try{ok=window.Android?.checkLogin ? Android.checkLogin(u,p) : (u==='admin'&&p==='admin')}catch(e){}
+  if(!ok){$('loginPass').value='';toast('Usuario o contraseña incorrectos');return}
+  $('loginScreen').classList.add('hidden');$('mainApp').classList.remove('hidden');page='home';go('home')
+}
+function logoutToLogin(){
+  $('mainApp').classList.add('hidden');$('loginScreen').classList.remove('hidden');
+  $('loginPass').value='';page='login'
+}
+function askExit(){
+  if(confirm('¿Deseas salir de Carwash Miami?')){window.Android?.exitApp?.()}
+}
+window.handleAndroidBack=function(){
+  if(page==='login'){askExit();return}
+  if(page==='home'){askExit();return}
+  if(page==='clientForm'||page==='detail'){go('clients');return}
+  if(page==='dailyForm'){showDaily();return}
+  if(page==='security'){go('settings');return}
+  if(page==='clients'||page==='reminders'||page==='settings'||page==='daily'){go('home');return}
+  go('home')
+}
+
 function nav(){document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===page))}
 function go(p){page=p;editId=null;$('hero').classList.toggle('hidden',!(p==='home'));render();nav();scrollTo(0,0)}
 function ordered(){return clients.slice().sort((a,b)=>a.renewalDate.localeCompare(b.renewalDate))}
 function row(c){return `<div class="client" onclick="detail('${c.id}')"><div><div class="name">${esc(c.name)}</div><span class="plate">${esc(c.plate)}</span><div class="phone"><span class="whatsapp">●</span> ${esc(c.phone)}</div></div><div class="next"><small>Próximo recordatorio</small><div class="date">${fmt(c.renewalDate)}</div><div class="period">${label(c)}</div></div></div>`}
+
+function todayIso(){return new Date().toISOString().slice(0,10)}
+function colones(n){return '₡'+Number(n||0).toLocaleString('es-CR',{maximumFractionDigits:0})}
+function recordsForDate(d){return dailyRecords.filter(r=>r.date===d)}
+function dailyQuickCard(){
+  let a=recordsForDate(todayIso()),total=a.reduce((s,r)=>s+(+r.amount||0),0);
+  return `<div class="quickDaily" onclick="showDaily()">
+    <div class="quickDailyTop"><div><h3>Control diario</h3><small>${a.length} vehículo${a.length===1?'':'s'} ingresado${a.length===1?'':'s'} hoy</small></div><div class="money">${colones(total)}</div></div>
+    <button type="button" class="secondaryBtn">VER JORNADA DE HOY ›</button>
+  </div>`
+}
+
 function home(){
   let next15=clients.filter(c=>!c.completed&&diff(c.renewalDate)>=0&&diff(c.renewalDate)<=15).length;
   let today=clients.filter(c=>!c.completed&&diff(c.renewalDate)===0).length;
@@ -203,6 +275,7 @@ function home(){
       <div id="homeList" class="clientList">${ordered().slice(0,4).map(row).join('')||'<div style="padding:20px;text-align:center;color:#7d94a5">No hay clientes registrados.</div>'}</div>
     </div>
     <button type="button" class="glowBtn" onclick="openClientForm()">＋ AGREGAR CLIENTE</button>
+    ${dailyQuickCard()}
   </div>`
 }
 function homeFilter(){let q=$('q').value.toLowerCase(),a=ordered().filter(c=>[c.name,c.plate,c.phone].join(' ').toLowerCase().includes(q));$('homeList').innerHTML=a.map(row).join('')||'<div style="padding:20px;text-align:center;color:#7d94a5">No se encontraron clientes.</div>'}
@@ -211,7 +284,7 @@ function filterClients(){let q=($('q')?.value||'').toLowerCase(),a=ordered().fil
 function bar(title,right=''){return `<div class="titlebar"><button class="back" onclick="go('clients')">‹</button><h2>${title}</h2><div>${right}</div></div>`}
 function openClientForm(id){
   try {
-  editId=id||null; let c=id?clients.find(x=>x.id===id):null; let d=c?.serviceDate||new Date().toISOString().slice(0,10);
+  page='clientForm';nav();editId=id||null; let c=id?clients.find(x=>x.id===id):null; let d=c?.serviceDate||new Date().toISOString().slice(0,10);
   period={m:c?.periodMonths??2,d:c?.periodDays??15}; $('hero').classList.add('hidden');
   $('view').innerHTML=bar(c?'Editar cliente':'Agregar cliente',`<button onclick="saveClient()">▣ GUARDAR</button>`)+`<div class="page">
     <div class="formCard">
@@ -235,6 +308,7 @@ function openClientForm(id){
     <div class="estimate panel"><small>Próximo recordatorio estimado</small><strong id="renew">${fmt(calc(d,period.m,period.d))}</strong><em id="periodLabel">${label({periodMonths:period.m,periodDays:period.d})}</em></div>
     <div class="formLabel">Notas (opcional)</div><textarea id="notes" class="input" rows="3" placeholder="Cualquier detalle adicional...">${esc(c?.notes||'')}</textarea>
     <button type="button" class="glowBtn" onclick="saveClient()">GUARDAR CLIENTE</button>
+    <button type="button" class="secondaryBtn" onclick="go('clients')">CANCELAR / VOLVER</button>
   </div>`
   } catch(e) { alert("No se pudo abrir el formulario: " + e.message); }
 }
@@ -270,12 +344,108 @@ function remindersPage(){
   <div class="tabs"><button class="active">Pendientes</button><button>Hoy</button><button>Próximos</button><button>Todos</button></div>
   <div class="page">${a.map(c=>{let n=diff(c.renewalDate),cl=n<=2?'redB':n<=15?'amberB':'blueB';return `<div class="panel reminder" onclick="detail('${c.id}')"><div><b>${esc(c.name)}</b><div class="plate">${esc(c.plate)}</div><div class="date" style="font-size:11px;color:#88a2b4">${fmt(c.renewalDate)}</div></div><div><span class="badge ${cl}">${n<0?Math.abs(n)+' días vencido':n+' días'}</span><span class="whatsapp" style="margin-left:8px" onclick="event.stopPropagation();wa('${c.id}')">●</span></div></div>`}).join('')||'<div class="panel" style="padding:22px;text-align:center;color:#7890a5">No hay recordatorios pendientes.</div>'}</div>`
 }
-function settingsPage(){$('view').innerHTML=`<div class="page"><div class="settingsLogo">CARWASH<span>MIAMI</span></div><div class="panel"><div class="setting" onclick="exportBackup()"><div class="sicon">☁</div><div><b>Respaldo de datos</b><small>Guardar copia de seguridad</small></div></div><div class="setting" onclick="window.Android?.importBackup?.()"><div class="sicon">↶</div><div><b>Restaurar datos</b><small>Recuperar copia existente</small></div></div><div class="setting"><div class="sicon">♢</div><div><b>Notificaciones</b><small>Alertas según cada cliente</small></div></div></div></div>`}
+function settingsPage(){
+  $('view').innerHTML=`<div class="page">
+    <div class="settingsLogo">CARWASH<span>MIAMI</span></div>
+    <div class="panel">
+      <div class="setting" onclick="showDaily()"><div class="sicon">▣</div><div><b>Control diario</b><small>Vehículos, servicios y facturación</small></div></div>
+      <div class="setting" onclick="exportBackup()"><div class="sicon">☁</div><div><b>Respaldo de datos</b><small>Clientes + control diario</small></div></div>
+      <div class="setting" onclick="window.Android?.importBackup?.()"><div class="sicon">↶</div><div><b>Restaurar datos</b><small>Recuperar copia existente</small></div></div>
+      <div class="setting" onclick="securityPage()"><div class="sicon">🔒</div><div><b>Seguridad</b><small>Cambiar contraseña de acceso</small></div></div>
+      <div class="setting"><div class="sicon">♢</div><div><b>Notificaciones</b><small>Alertas según cada cliente</small></div></div>
+      <div class="setting" onclick="logoutToLogin()"><div class="sicon">↪</div><div><b>Cerrar sesión</b><small>Volver a la pantalla de acceso</small></div></div>
+    </div>
+    <button type="button" class="dangerBtn" onclick="askExit()">SALIR DE LA APLICACIÓN</button>
+  </div>`
+}
+
+function securityPage(){
+  page='security';$('hero').classList.add('hidden');nav();
+  $('view').innerHTML=bar('Seguridad',`<button onclick="go('settings')">CERRAR</button>`)+`<div class="page">
+    <div class="panel formCard">
+      <div style="color:#42caff;font-weight:900;font-size:12px">🔒 Cambiar contraseña</div>
+      <div class="formLabel">Contraseña actual</div><input id="oldPass" class="input" type="password">
+      <div class="formLabel">Nueva contraseña</div><input id="newPass" class="input" type="password">
+      <div class="formLabel">Repetir nueva contraseña</div><input id="newPass2" class="input" type="password">
+      <button type="button" class="glowBtn" onclick="changePassword()">ACTUALIZAR CONTRASEÑA</button>
+      <div class="securityNote">El usuario de acceso permanece como <b>admin</b>. La contraseña se guarda únicamente en este teléfono.</div>
+    </div>
+  </div>`
+}
+function changePassword(){
+  const oldP=$('oldPass').value,newP=$('newPass').value,newP2=$('newPass2').value;
+  if(newP.length<4)return toast('Usa una contraseña de al menos 4 caracteres');
+  if(newP!==newP2)return toast('Las contraseñas nuevas no coinciden');
+  let ok=false;try{ok=window.Android?.changePassword?Android.changePassword(oldP,newP):false}catch(e){}
+  if(!ok)return toast('La contraseña actual no es correcta');
+  toast('Contraseña actualizada');setTimeout(()=>go('settings'),900)
+}
+function showDaily(date=todayIso()){
+  page='daily';$('hero').classList.add('hidden');nav();
+  let a=recordsForDate(date).sort((x,y)=>(y.createdAt||0)-(x.createdAt||0));
+  let total=a.reduce((s,r)=>s+(+r.amount||0),0);
+  $('view').innerHTML=bar('Control diario',`<button onclick="go('home')">INICIO</button>`)+`<div class="page">
+    <div class="panel formCard">
+      <div class="formLabel">Fecha</div><input id="dailyDateFilter" type="date" class="input" value="${date}" onchange="showDaily(this.value)">
+      <div class="dailySummary"><div class="dailyStat"><b>${a.length}</b><small>Vehículos</small></div><div class="dailyStat"><b>${colones(total)}</b><small>Total facturado</small></div></div>
+      <button type="button" class="glowBtn" onclick="openDailyForm(null,'${date}')">＋ REGISTRAR VEHÍCULO</button>
+    </div>
+    <div class="sectionHead" style="padding:13px 2px 3px"><h2>Ingresos del día</h2><div class="count">${a.length} registros</div></div>
+    <div>${a.map(dailyRecordCard).join('')||'<div class="panel" style="padding:22px;text-align:center;color:#7890a5">Aún no hay vehículos registrados en esta fecha.</div>'}</div>
+  </div>`
+}
+function dailyRecordCard(r){
+  return `<div class="panel recordCard"><div class="recordTop"><div><div class="name">${esc(r.name)}</div><span class="plate">${esc(r.plate)}</span><div class="phone">${esc(r.brand||'')} · ${esc(r.phone||'')}</div></div><div class="recordAmount">${colones(r.amount)}</div></div><div class="recordServices">${(r.services||[]).map(esc).join(' · ')}</div><div class="recordActions"><button class="tinyBtn" onclick="openDailyForm('${r.id}')">EDITAR</button><button class="tinyBtn red" onclick="deleteDailyRecord('${r.id}')">ELIMINAR</button></div></div>`
+}
+function openDailyForm(id,date=todayIso()){
+  page='dailyForm';$('hero').classList.add('hidden');nav();editRecordId=id||null;
+  let r=id?dailyRecords.find(x=>x.id===id):null;
+  let services=r?.services||[];
+  const opts=['Premium','Plus','Lavado de chasis','Lavado de motor','Acabado cerámico'];
+  $('view').innerHTML=bar(r?'Editar ingreso':'Registrar vehículo',`<button onclick="saveDailyRecord()">GUARDAR</button>`)+`<div class="page">
+    <div class="panel formCard">
+      <div style="color:#42caff;font-weight:900;font-size:12px">▣ Datos del ingreso</div>
+      <div class="formLabel">Fecha</div><input id="drDate" type="date" class="input" value="${r?.date||date}">
+      <div class="formLabel">Nombre del cliente</div><input id="drName" class="input" value="${esc(r?.name||'')}">
+      <div class="formLabel">Placa</div><input id="drPlate" class="input" value="${esc(r?.plate||'')}">
+      <div class="formLabel">Marca</div><input id="drBrand" class="input" value="${esc(r?.brand||'')}">
+      <div class="formLabel">Número de teléfono</div><input id="drPhone" class="input" value="${esc(r?.phone||'')}">
+      <div class="formLabel">Monto (colones)</div><input id="drAmount" class="input" type="number" min="0" inputmode="numeric" value="${esc(r?.amount||'')}">
+      <div class="formLabel">Tipo de lavado / servicios</div>
+      <div class="serviceGrid">${opts.map(o=>`<label class="serviceChip"><input type="checkbox" name="service" value="${o}" ${services.includes(o)?'checked':''}><span>${o}</span></label>`).join('')}</div>
+      <button type="button" class="glowBtn" onclick="saveDailyRecord()">GUARDAR REGISTRO</button>
+      <button type="button" class="secondaryBtn" onclick="showDaily('${r?.date||date}')">CANCELAR / VOLVER</button>
+    </div>
+  </div>`
+}
+function saveDailyRecord(){
+  let date=$('drDate').value,name=$('drName').value.trim(),plate=$('drPlate').value.trim().toUpperCase(),brand=$('drBrand').value.trim(),phone=$('drPhone').value.trim(),amount=+$('drAmount').value;
+  let services=[...document.querySelectorAll('input[name="service"]:checked')].map(x=>x.value);
+  if(!date||!name||!plate||!brand||!phone||!amount)return toast('Completa todos los datos del ingreso');
+  if(!services.length)return toast('Selecciona al menos un servicio');
+  if(editRecordId){let r=dailyRecords.find(x=>x.id===editRecordId);Object.assign(r,{date,name,plate,brand,phone,amount,services})}
+  else dailyRecords.push({id:'D'+Date.now(),date,name,plate,brand,phone,amount,services,createdAt:Date.now()});
+  save();toast('Ingreso guardado');showDaily(date)
+}
+function deleteDailyRecord(id){
+  let r=dailyRecords.find(x=>x.id===id);if(!r)return;
+  if(!confirm(`¿Eliminar el registro de ${r.name} (${r.plate})?`))return;
+  let date=r.date;dailyRecords=dailyRecords.filter(x=>x.id!==id);save();toast('Registro eliminado');showDaily(date)
+}
+
 function wa(id){let c=clients.find(x=>x.id===id),msg=`Hola ${c.name} 👋 Somos de Carwash Miami. Te recordamos que corresponde revisar o renovar el acabado cerámico de tu vehículo ${c.plate}. ¿Deseas coordinar una cita?`;window.Android?.openWhatsApp?.(c.phone,msg)}
-function exportBackup(){let raw=JSON.stringify({app:'Carwash Miami Cerámico',version:4,exportedAt:new Date().toISOString(),clients},null,2);window.Android?.exportBackup?.(raw)}
-window.importBackupFromAndroid=function(raw){try{let o=JSON.parse(raw),a=Array.isArray(o)?o:o.clients;if(!Array.isArray(a))throw 0;clients=a.map(c=>({...c,periodMonths:c.periodMonths??2,periodDays:c.periodDays??15}));save();clients.filter(c=>!c.completed).forEach(c=>window.Android?.scheduleReminder?.(c.id,c.name,c.plate,c.renewalDate));toast('Respaldo restaurado');go('home')}catch(e){toast('Respaldo no válido')}}
-function render(){({home,clients:clientsPage,reminders:remindersPage,settings:settingsPage}[page]||home)()}
-save();go('home');
+function exportBackup(){let raw=JSON.stringify({app:'Carwash Miami Cerámico',version:5,exportedAt:new Date().toISOString(),clients,dailyRecords},null,2);window.Android?.exportBackup?.(raw)}
+window.importBackupFromAndroid=function(raw){try{
+  let o=JSON.parse(raw),a=Array.isArray(o)?o:o.clients;if(!Array.isArray(a))throw 0;
+  clients=a.map(c=>({...c,periodMonths:c.periodMonths??2,periodDays:c.periodDays??15}));
+  if(o&&Array.isArray(o.dailyRecords))dailyRecords=o.dailyRecords;
+  save();clients.filter(c=>!c.completed).forEach(c=>window.Android?.scheduleReminder?.(c.id,c.name,c.plate,c.renewalDate));
+  toast('Respaldo restaurado');go('home')
+}catch(e){toast('Respaldo no válido')}}
+function render(){({home,clients:clientsPage,reminders:remindersPage,settings:settingsPage,daily:showDaily,security:securityPage}[page]||home)()}
+save();
+document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+$('loginPass').focus();
 </script>
 </body>
 </html>
