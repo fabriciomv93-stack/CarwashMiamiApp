@@ -44,7 +44,57 @@ function doLogin(){
   }else $('#e').textContent='Usuario o contraseña incorrectos'
 }
 function logout(){localStorage.removeItem(SESSION_KEY);page='login';render()}
-function home(){let cer=clients.reduce((s,c)=>s+c.vehicles.filter(v=>v.ceramic?.renewalDate).length,0),dr=daily.filter(r=>r.date===today());$('#app').innerHTML=`<div class="app"><div class="top"><div class="logo">CARWASH<span>MIAMI</span></div></div><div class="page"><div class="stats"><div class="card stat clientsStat"><b>${clients.length}</b><small>Clientes</small></div><div class="card stat cerStat"><b>${cer}</b><small>Cerámicos</small></div><div class="card stat"><b>${dr.length}</b><small>Hoy</small></div></div><div class="homeCards"><div class="card homeCard clientsCard" onclick="go('clients')"><div class="ico">♙</div><div><b>CLIENTES</b><small>Clientes, teléfonos y varios vehículos.</small></div><div>›</div></div><div class="card homeCard cerCard" onclick="go('ceramic')"><div class="ico">♢</div><div><b>ACABADOS CERÁMICOS</b><small>Control y recordatorios de tratamientos.</small></div><div>›</div></div><div class="card homeCard dailyCard" onclick="go('daily')"><div class="ico">▣</div><div><b>CONTROL DIARIO</b><small>Vehículos que ingresan al lavacar.</small></div><div>›</div></div></div></div>${nav('home')}</div>`}
+function home(){
+  let cer=clients.reduce((s,c)=>s+c.vehicles.filter(v=>v.ceramic?.renewalDate).length,0),
+      dr=daily.filter(r=>r.date===today()),
+      todayAppts=(appointments||[])
+        .filter(a=>a.date===today()&&a.status!=='cancelled')
+        .sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+
+  let apptsHtml=todayAppts.length
+    ? todayAppts.map(a=>`
+      <div class="card" style="padding:12px;margin-top:8px;border-color:#195b70">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+          <div>
+            <b>${esc(a.name)}</b>
+            <div style="color:#3bd8ff;font-weight:900;margin-top:3px">${esc(a.time||'')}</div>
+            <div class="meta">${esc([a.plate,a.service].filter(Boolean).join(' · ')||'Cita programada')}</div>
+          </div>
+          <span class="apptStatus ${a.status||'scheduled'}">${a.status==='done'?'COMPLETADA':'AGENDADA'}</span>
+        </div>
+      </div>`).join('')
+    : `<div class="card" style="padding:14px;color:#8299aa;text-align:center">No hay citas programadas para hoy.</div>`;
+
+  $('#app').innerHTML=`<div class="app">
+    <div class="top"><div class="logo">CARWASH<span>MIAMI</span></div></div>
+    <div class="page">
+      <div class="stats">
+        <div class="card stat clientsStat"><b>${clients.length}</b><small>Clientes</small></div>
+        <div class="card stat cerStat"><b>${cer}</b><small>Cerámicos</small></div>
+        <div class="card stat dailyStat"><b>${dr.length}</b><small>Hoy</small></div>
+      </div>
+
+      <div class="homeCards">
+        <div class="card homeCard clientsCard" onclick="go('clients')">
+          <div class="ico">♙</div><div><b>CLIENTES</b><small>Clientes, teléfonos y varios vehículos.</small></div><div>›</div>
+        </div>
+        <div class="card homeCard cerCard" onclick="go('ceramic')">
+          <div class="ico">♢</div><div><b>ACABADOS CERÁMICOS</b><small>Control y recordatorios de tratamientos.</small></div><div>›</div>
+        </div>
+        <div class="card homeCard dailyCard" onclick="go('daily')">
+          <div class="ico">▣</div><div><b>CONTROL DIARIO</b><small>Vehículos que ingresan al lavacar.</small></div><div>›</div>
+        </div>
+      </div>
+
+      <div class="section" style="margin-top:18px">
+        <b>Citas de hoy</b>
+        <span class="meta">${todayAppts.length} programada${todayAppts.length===1?'':'s'}</span>
+      </div>
+      <div onclick="go('appointments')" style="cursor:pointer">${apptsHtml}</div>
+    </div>
+    ${nav('home')}
+  </div>`
+}
 function personHtml(c){return`<div class="card person" onclick="openClient('${c.id}')"><div class="avatar">${initials(c.name)}</div><div><b>${esc(c.name)}</b><div class="meta">${esc(c.phone||'Sin teléfono')} · ${c.vehicles.length} vehículo${c.vehicles.length===1?'':'s'}</div></div><button class="waPhone" onclick="event.stopPropagation();wa('${c.phone}')">☎</button></div>`}
 function clientsPage(){$('#app').innerHTML=`<div class="app">${bar('Clientes')}<div class="page"><div class="search"><input id="q" placeholder="Buscar nombre, placa o teléfono..." oninput="filterClients()"></div><div id="rows" class="list">${clients.map(personHtml).join('')||'<div class="card" style="padding:20px;text-align:center;color:#8299aa">No hay clientes registrados.</div>'}</div></div><button class="fab" onclick="newClient()">＋</button>${nav('clients')}</div>`}
 function filterClients(){let q=$('#q').value.toLowerCase();$('#rows').innerHTML=clients.filter(c=>[c.name,c.phone,...c.vehicles.map(v=>v.plate)].join(' ').toLowerCase().includes(q)).map(personHtml).join('')||'<div class="card" style="padding:20px;text-align:center;color:#8299aa">Sin resultados.</div>'}
@@ -58,6 +108,7 @@ function vehicleForm(){let c=clients.find(x=>x.id===sel),v=editV?c.vehicles.find
 function saveVehicle(){let c=clients.find(x=>x.id===sel),brand=$('#vb').value.trim(),model=$('#vm').value.trim(),plate=$('#vp').value.trim().toUpperCase(),color=$('#vc').value.trim(),sd=$('#sd').value,pm=Number($('#pm').value||0),pd=Number($('#pd').value||0),notes=$('#vn').value.trim();if(!plate)return toast('Escribe la placa');let ceramic=sd?{serviceDate:sd,periodMonths:pm,periodDays:pd,renewalDate:calc(sd,pm,pd),notes}:{};if(editV)Object.assign(c.vehicles.find(x=>x.id===editV),{brand,model,plate,color,ceramic});else c.vehicles.push({id:'v'+Date.now(),brand,model,plate,color,ceramic});save();page='client';render()}
 function deleteVehicle(){
   let c=clients.find(x=>x.id===sel);
+  if(!c)return;
   askConfirm('Eliminar vehículo','¿Estás seguro de que deseas eliminar este vehículo?','SÍ, ELIMINAR',()=>{
     c.vehicles=c.vehicles.filter(x=>x.id!==editV);
     save();page='client';render();toast('Vehículo eliminado')
@@ -80,15 +131,14 @@ function ceramicPage(){
 function ceramicChoice(){
   $('#app').innerHTML=`<div class="app">${bar('Nuevo acabado','ceramic')}<div class="page"><div class="card form"><b>¿Cómo deseas continuar?</b><div class="meta">Puedes usar un cliente ya registrado o crear uno nuevo.</div><div class="choiceGrid"><button class="choiceBtn" onclick="cerCId=null;cerVId=null;page='ceramicForm';render()">CLIENTE EXISTENTE</button><button class="choiceBtn new" onclick="returnToCeramic=true;editClient=null;page='clientForm';render()">NUEVO CLIENTE</button></div></div></div>${nav('ceramic')}</div>`
 }
-function askDeleteCeramic(cid,vid){let c=clients.find(x=>x.id===cid),v=c?.vehicles.find(x=>x.id===vid);askConfirm('Eliminar acabado','¿Estás seguro de que deseas eliminar este acabado cerámico?','SÍ, ELIMINAR',()=>{if(v){v.ceramic={};save();page='ceramic';render();toast('Acabado eliminado')}})}
-function editCeramic(cid,vid){cerCId=cid;cerVId=vid;page='ceramicForm';render()}
-function ceramicForm(){
-  if(!clients.length){returnToCeramic=true;editClient=null;page='clientForm';render();return}
-  let cid=cerCId||clients[0].id,c=clients.find(x=>x.id===cid)||clients[0];
-  let v=cerVId?c.vehicles.find(x=>x.id===cerVId):c.vehicles[0],ce=v?.ceramic||{};
-  let co=clients.map(x=>`<option value="${x.id}" ${x.id===c.id?'selected':''}>${esc(x.name)}</option>`).join('');
-  let vo=c.vehicles.map(x=>`<option value="${x.id}" ${v&&x.id===v.id?'selected':''}>${esc([x.brand,x.model].filter(Boolean).join(' ')||'Vehículo')} · ${esc(x.plate)}</option>`).join('');
-  $('#app').innerHTML=`<div class="app">${bar(cerVId?'Editar acabado':'Registrar acabado','ceramic','<button class="headBtn" onclick="saveCeramic()">✓</button>')}<div class="page"><div class="card form"><label class="label">Cliente</label><select id="cc" class="input" onchange="cerClientChanged()">${co}</select><label class="label">Vehículo</label>${c.vehicles.length?`<select id="cv" class="input">${vo}</select>`:`<div class="card" style="padding:12px;color:#8299aa">Este cliente no tiene vehículos registrados.</div><button class="secondary" onclick="sel='${c.id}';returnToCeramic=true;newVeh()">AGREGAR VEHÍCULO</button>`}${c.vehicles.length?`<label class="label">Fecha del tratamiento</label><input id="csd" type="date" class="input" value="${esc(ce.serviceDate||today())}"><div class="row2"><div><label class="label">Meses</label><input id="cpm" type="number" min="0" class="input" value="${ce.periodMonths??2}"></div><div><label class="label">Días</label><input id="cpd" type="number" min="0" class="input" value="${ce.periodDays??15}"></div></div><label class="label">Notas</label><textarea id="cn" class="input" rows="3">${esc(ce.notes||'')}</textarea><button class="primary" onclick="saveCeramic()">GUARDAR ACABADO</button>`:''}</div></div>${nav('ceramic')}</div>`
+function askDeleteCeramic(cid,vid){
+  let c=clients.find(x=>x.id===cid),v=c?.vehicles.find(x=>x.id===vid);
+  askConfirm('Eliminar acabado','¿Estás seguro de que deseas eliminar este acabado cerámico?','SÍ, ELIMINAR',()=>{
+    if(v){
+      v.ceramic={};
+      save();page='ceramic';render();toast('Acabado eliminado')
+    }
+  })
 }
 function cerClientChanged(){cerCId=$('#cc').value;cerVId=null;render()}
 function saveCeramic(){
@@ -119,17 +169,12 @@ function saveDaily(){
   if(editDailyId){Object.assign(old,data)}else daily.push({id:'d'+Date.now(),...data});
   save();editDailyId=null;go('daily');toast('Ingreso guardado')
 }
-function deleteDaily(id){let r=daily.find(x=>x.id===id);askConfirm('Eliminar registro','¿Estás seguro de que deseas eliminar este registro del control diario?','SÍ, ELIMINAR',()=>{daily=daily.filter(x=>x.id!==id);save();render();toast('Registro eliminado')})}
-function markPaid(id){let r=daily.find(x=>x.id===id);if(!r)return;r.paymentStatus='paid';r.paidDate=today();save();render();toast('Marcado como cancelado')}
-function closeDay(){
-  if(!currentDayRecords().length)return toast('No hay registros para cerrar');
-  let x=closures.find(c=>c.date===today());
-  if(x)x.closed=true;
-  else closures.push({date:today(),closed:true,closedAt:new Date().toISOString()});
-  save();
-  if(window.Android&&Android.autoBackup)Android.autoBackup(backupPayload());
-  render();
-  toast('Jornada cerrada y respaldo generado')
+function deleteDaily(id){
+  let r=daily.find(x=>x.id===id);
+  askConfirm('Eliminar registro','¿Estás seguro de que deseas eliminar este registro del control diario?','SÍ, ELIMINAR',()=>{
+    daily=daily.filter(x=>x.id!==id);
+    save();render();toast('Registro eliminado')
+  })
 }
 function reopenDay(){let x=closures.find(c=>c.date===today());if(x)x.closed=false;save();render();toast('Jornada reabierta')}
 function payLabel(m){return m==='card'?'Tarjeta':m==='sinpe'?'SINPE':'Efectivo'}
@@ -154,24 +199,12 @@ function appointmentsPage(){
 function editAppointment(id){editApptId=id;page='appointmentForm';render()}
 function appointmentForm(){let a=editApptId?appointments.find(x=>x.id===editApptId):null;$('#app').innerHTML=`<div class="app">${bar(a?'Editar cita':'Nueva cita','appointments','<button class="headBtn" onclick="saveAppointment()">✓</button>')}<div class="page"><div class="card form"><label class="label">Cliente</label><input id="an" class="input" value="${esc(a?.name||'')}"><label class="label">Teléfono</label><input id="aph" class="input" value="${esc(a?.phone||'')}"><label class="label">Placa</label><input id="ap" class="input" value="${esc(a?.plate||'')}"><div class="row2"><div><label class="label">Fecha</label><input id="ad" type="date" class="input" value="${esc(a?.date||today())}"></div><div><label class="label">Hora</label><input id="at" type="time" class="input" value="${esc(a?.time||'08:00')}"></div></div><label class="label">Servicio</label><input id="as" class="input" value="${esc(a?.service||'')}"><label class="label">Notas</label><textarea id="ant" class="input" rows="3">${esc(a?.notes||'')}</textarea><button class="primary" onclick="saveAppointment()">GUARDAR CITA</button></div></div>${nav('appointments')}</div>`}
 function saveAppointment(){let name=$('#an').value.trim(),date=$('#ad').value,time=$('#at').value;if(!name||!date||!time)return toast('Completa cliente, fecha y hora');let data={name,phone:$('#aph').value.trim(),plate:$('#ap').value.trim().toUpperCase(),date,time,service:$('#as').value.trim(),notes:$('#ant').value.trim(),status:'scheduled'};if(editApptId){let a=appointments.find(x=>x.id===editApptId);Object.assign(a,data,{status:a.status||'scheduled'})}else appointments.push({id:'a'+Date.now(),...data});save();editApptId=null;go('appointments');toast('Cita guardada')}
-function deleteAppointment(id){let a=appointments.find(x=>x.id===id);askConfirm('Eliminar cita','¿Estás seguro de que deseas eliminar esta cita?','SÍ, ELIMINAR',()=>{appointments=appointments.filter(x=>x.id!==id);save();render();toast('Cita eliminada')})}
-function toggleAppointment(id){let a=appointments.find(x=>x.id===id);if(!a)return;a.status=a.status==='done'?'scheduled':'done';save();render()}
-
-function morePage(){$('#app').innerHTML=`<div class="app">${bar('Más')}<div class="page">
-<div class="card form"><b>Respaldo de datos</b><div class="meta">Conserva clientes, vehículos, acabados y control diario.</div><button class="secondary" onclick="backup()">EXPORTAR RESPALDO</button><button class="secondary" onclick="document.getElementById('restoreFile').click()">IMPORTAR / RESTAURAR</button><input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreBackup(this)"></div>
-<div class="card form" style="margin-top:9px"><b>Seguridad</b><div class="meta">La sesión permanece abierta hasta que tú decidas cerrarla.</div><button class="secondary" onclick="page='changePass';render()">CAMBIAR CONTRASEÑA</button></div>
-<div class="card form" style="margin-top:9px"><b>Versión</b><div class="meta">Carwash Miami 3.6.1</div></div>
-<button class="danger" onclick="logout()">CERRAR SESIÓN</button></div>${nav('more')}</div>`}
-function restoreBackup(input){
-  let f=input.files?.[0];if(!f)return;
-  let r=new FileReader();
-  r.onload=()=>{try{
-    let d=JSON.parse(r.result);
-    if(!Array.isArray(d.clients)||!Array.isArray(d.daily))throw new Error();
-    if(!confirm('¿Restaurar este respaldo? Reemplazará los datos actuales.'))return;
-    clients=d.clients;daily=d.daily;closures=Array.isArray(d.closures)?d.closures:[];appointments=Array.isArray(d.appointments)?d.appointments:[];save();toast('Respaldo restaurado');setTimeout(()=>go('home'),500)
-  }catch(e){toast('El archivo no es un respaldo válido')}};
-  r.readAsText(f)
+function deleteAppointment(id){
+  let a=appointments.find(x=>x.id===id);
+  askConfirm('Eliminar cita','¿Estás seguro de que deseas eliminar esta cita?','SÍ, ELIMINAR',()=>{
+    appointments=appointments.filter(x=>x.id!==id);
+    save();render();toast('Cita eliminada')
+  })
 }
 function changePass(){
   $('#app').innerHTML=`<div class="app">${bar('Cambiar contraseña','more')}<div class="page"><div class="card form">
@@ -187,6 +220,50 @@ function savePassword(){
   if(np!==np2)return toast('Las contraseñas nuevas no coinciden');
   auth.password=np;localStorage.setItem(AUTH_KEY,JSON.stringify(auth));toast('Contraseña actualizada');setTimeout(()=>go('more'),500)
 }
+
+function askConfirm(title,msg,yesText,onYes){
+  confirmAction=onYes;
+  document.getElementById('genericConfirm')?.remove();
+  document.body.insertAdjacentHTML('beforeend',
+    `<div id="genericConfirm" class="confirmBox">
+      <div class="confirmCard">
+        <h3>${esc(title)}</h3>
+        <p>${esc(msg)}</p>
+        <div class="confirmBtns">
+          <button onclick="closeConfirm()">NO</button>
+          <button class="yes" onclick="runConfirm()">${esc(yesText||'SÍ')}</button>
+        </div>
+      </div>
+    </div>`)
+}
+function closeConfirm(){
+  document.getElementById('genericConfirm')?.remove();
+  confirmAction=null
+}
+function runConfirm(){
+  let f=confirmAction;
+  closeConfirm();
+  if(typeof f==='function')f()
+}
+function confirmWhatsApp(phone){
+  let n=String(phone||'').replace(/\D/g,'');
+  if(!n)return toast('Cliente sin teléfono');
+  askConfirm(
+    'Abrir WhatsApp',
+    '¿Deseas abrir WhatsApp para contactar a este cliente?',
+    'ABRIR WHATSAPP',
+    ()=>openWhatsAppNow(n)
+  )
+}
+function openWhatsAppNow(n){
+  if(window.Android&&Android.openWhatsApp){
+    Android.openWhatsApp(n,'Hola, te contactamos de Carwash Miami.');
+    return
+  }
+  if(n.length===8)n='506'+n;
+  location.href='https://wa.me/'+n
+}
+
 function backup(){
   let d=backupPayload();
   if(window.Android&&Android.exportBackup)Android.exportBackup(d);
