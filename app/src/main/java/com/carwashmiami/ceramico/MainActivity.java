@@ -6,6 +6,8 @@ import android.content.*;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.*;
+import android.provider.MediaStore;
+import android.content.ContentValues;
 import android.webkit.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -113,6 +115,29 @@ public class MainActivity extends Activity {
                 }
             });
         }
+
+        @JavascriptInterface public void autoBackup(String j) {
+            runOnUiThread(() -> {
+                try {
+                    String name="CarwashMiami_Auto_"+new SimpleDateFormat("yyyy-MM-dd_HHmm",Locale.US).format(new Date())+".json";
+                    if(Build.VERSION.SDK_INT>=29) {
+                        ContentValues v=new ContentValues();
+                        v.put(MediaStore.MediaColumns.DISPLAY_NAME,name);
+                        v.put(MediaStore.MediaColumns.MIME_TYPE,"application/json");
+                        v.put(MediaStore.MediaColumns.RELATIVE_PATH,Environment.DIRECTORY_DOCUMENTS+"/CarwashMiami");
+                        Uri u=getContentResolver().insert(MediaStore.Files.getContentUri("external"),v);
+                        if(u==null) throw new IOException("backup");
+                        try(OutputStream out=getContentResolver().openOutputStream(u)) { out.write(j.getBytes(StandardCharsets.UTF_8)); }
+                    } else {
+                        File dir=new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),"CarwashMiami");
+                        if(!dir.exists())dir.mkdirs();
+                        try(OutputStream out=new FileOutputStream(new File(dir,name))) { out.write(j.getBytes(StandardCharsets.UTF_8)); }
+                    }
+                    jsToast("Respaldo automático guardado");
+                } catch(Exception e) { jsToast("Cierre guardado; no se pudo crear el respaldo automático"); }
+            });
+        }
+
         @JavascriptInterface public boolean checkLogin(String user,String pass) {
             SharedPreferences sp=getSharedPreferences("cm_security",MODE_PRIVATE);
             String savedUser=sp.getString("user","admin");
