@@ -56,14 +56,21 @@ function saveClient(){let name=$('#fn').value.trim(),phone=$('#fp').value.trim()
 function newVeh(){editV=null;page='vehicleForm';render()} function editVeh(id){editV=id;page='vehicleForm';render()}
 function vehicleForm(){let c=clients.find(x=>x.id===sel),v=editV?c.vehicles.find(x=>x.id===editV):null,ce=v?.ceramic||{};$('#app').innerHTML=`<div class="app">${bar(v?'Editar vehículo':'Agregar vehículo','client','<button class="headBtn" onclick="saveVehicle()">✓</button>')}<div class="page"><div class="card form"><div class="row2"><div><label class="label">Marca</label><input id="vb" class="input" value="${esc(v?.brand||'')}"></div><div><label class="label">Modelo</label><input id="vm" class="input" value="${esc(v?.model||'')}"></div></div><label class="label">Placa</label><input id="vp" class="input" value="${esc(v?.plate||'')}"><label class="label">Color</label><input id="vc" class="input" value="${esc(v?.color||'')}"><div class="section"><b>Acabado cerámico</b><span class="meta">Opcional</span></div><label class="label">Fecha del servicio</label><input id="sd" type="date" class="input" value="${esc(ce.serviceDate||'')}"><div class="row2"><div><label class="label">Meses</label><input id="pm" type="number" min="0" class="input" value="${ce.periodMonths??2}"></div><div><label class="label">Días</label><input id="pd" type="number" min="0" class="input" value="${ce.periodDays??15}"></div></div><label class="label">Notas</label><textarea id="vn" class="input" rows="3">${esc(ce.notes||'')}</textarea><button class="primary" onclick="saveVehicle()">GUARDAR VEHÍCULO</button>${v?'<button class="danger" onclick="deleteVehicle()">ELIMINAR VEHÍCULO</button>':''}</div></div>${nav('clients')}</div>`}
 function saveVehicle(){let c=clients.find(x=>x.id===sel),brand=$('#vb').value.trim(),model=$('#vm').value.trim(),plate=$('#vp').value.trim().toUpperCase(),color=$('#vc').value.trim(),sd=$('#sd').value,pm=Number($('#pm').value||0),pd=Number($('#pd').value||0),notes=$('#vn').value.trim();if(!plate)return toast('Escribe la placa');let ceramic=sd?{serviceDate:sd,periodMonths:pm,periodDays:pd,renewalDate:calc(sd,pm,pd),notes}:{};if(editV)Object.assign(c.vehicles.find(x=>x.id===editV),{brand,model,plate,color,ceramic});else c.vehicles.push({id:'v'+Date.now(),brand,model,plate,color,ceramic});save();page='client';render()}
-function deleteVehicle(){if(!confirm('¿Eliminar vehículo?'))return;let c=clients.find(x=>x.id===sel);c.vehicles=c.vehicles.filter(v=>v.id!==editV);save();page='client';render()} function deleteClient(id){let c=clients.find(x=>x.id===id);askConfirm('Eliminar cliente','¿Estás seguro de que deseas eliminar a '+(c?.name||'este cliente')+' y todos sus vehículos?','SÍ, ELIMINAR',()=>{clients=clients.filter(x=>x.id!==id);save();go('clients');toast('Cliente eliminado')})}</b> y sus vehículos?</p><div class="confirmBtns"><button onclick="cancelDeleteClient()">CANCELAR</button><button class="yes" onclick="confirmDeleteClient()">ELIMINAR</button></div></div></div>`)
+function deleteVehicle(){
+  let c=clients.find(x=>x.id===sel);
+  askConfirm('Eliminar vehículo','¿Estás seguro de que deseas eliminar este vehículo?','SÍ, ELIMINAR',()=>{
+    c.vehicles=c.vehicles.filter(x=>x.id!==editV);
+    save();page='client';render();toast('Vehículo eliminado')
+  })
 }
-function cancelDeleteClient(){document.getElementById('deleteConfirm')?.remove();pendingDeleteClient=null}
-function confirmDeleteClient(){
-  if(!pendingDeleteClient)return;
-  clients=clients.filter(c=>c.id!==pendingDeleteClient);
-  save();cancelDeleteClient();go('clients');toast('Cliente eliminado')
+function deleteClient(id){
+  let c=clients.find(x=>x.id===id);
+  askConfirm('Eliminar cliente','¿Estás seguro de que deseas eliminar a '+(c?.name||'este cliente')+' y todos sus vehículos?','SÍ, ELIMINAR',()=>{
+    clients=clients.filter(x=>x.id!==id);
+    save();go('clients');toast('Cliente eliminado')
+  })
 }
+
 function ceramicPage(){
   let a=[];clients.forEach(c=>c.vehicles.forEach(v=>{if(v.ceramic?.renewalDate)a.push({c,v})}));
   a.sort((x,y)=>x.v.ceramic.renewalDate.localeCompare(y.v.ceramic.renewalDate));
@@ -114,7 +121,16 @@ function saveDaily(){
 }
 function deleteDaily(id){let r=daily.find(x=>x.id===id);askConfirm('Eliminar registro','¿Estás seguro de que deseas eliminar este registro del control diario?','SÍ, ELIMINAR',()=>{daily=daily.filter(x=>x.id!==id);save();render();toast('Registro eliminado')})}
 function markPaid(id){let r=daily.find(x=>x.id===id);if(!r)return;r.paymentStatus='paid';r.paidDate=today();save();render();toast('Marcado como cancelado')}
-function closeDay(){if(!currentDayRecords().length)return toast('No hay registros para cerrar');let x=closures.find(c=>c.date===today());if(x)x.closed=true;else closures.push({date:today(),closed:true,closedAt:new Date().toISOString()});save();if(window.Android&&Android.autoBackup)Android.autoBackup(backupPayload());render();toast('Jornada cerrada y respaldo generado')});save();render();toast('Jornada cerrada')}
+function closeDay(){
+  if(!currentDayRecords().length)return toast('No hay registros para cerrar');
+  let x=closures.find(c=>c.date===today());
+  if(x)x.closed=true;
+  else closures.push({date:today(),closed:true,closedAt:new Date().toISOString()});
+  save();
+  if(window.Android&&Android.autoBackup)Android.autoBackup(backupPayload());
+  render();
+  toast('Jornada cerrada y respaldo generado')
+}
 function reopenDay(){let x=closures.find(c=>c.date===today());if(x)x.closed=false;save();render();toast('Jornada reabierta')}
 function payLabel(m){return m==='card'?'Tarjeta':m==='sinpe'?'SINPE':'Efectivo'}
 function reportsPage(){
@@ -144,7 +160,7 @@ function toggleAppointment(id){let a=appointments.find(x=>x.id===id);if(!a)retur
 function morePage(){$('#app').innerHTML=`<div class="app">${bar('Más')}<div class="page">
 <div class="card form"><b>Respaldo de datos</b><div class="meta">Conserva clientes, vehículos, acabados y control diario.</div><button class="secondary" onclick="backup()">EXPORTAR RESPALDO</button><button class="secondary" onclick="document.getElementById('restoreFile').click()">IMPORTAR / RESTAURAR</button><input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreBackup(this)"></div>
 <div class="card form" style="margin-top:9px"><b>Seguridad</b><div class="meta">La sesión permanece abierta hasta que tú decidas cerrarla.</div><button class="secondary" onclick="page='changePass';render()">CAMBIAR CONTRASEÑA</button></div>
-<div class="card form" style="margin-top:9px"><b>Versión</b><div class="meta">Carwash Miami 3.6</div></div>
+<div class="card form" style="margin-top:9px"><b>Versión</b><div class="meta">Carwash Miami 3.6.1</div></div>
 <button class="danger" onclick="logout()">CERRAR SESIÓN</button></div>${nav('more')}</div>`}
 function restoreBackup(input){
   let f=input.files?.[0];if(!f)return;
@@ -171,11 +187,17 @@ function savePassword(){
   if(np!==np2)return toast('Las contraseñas nuevas no coinciden');
   auth.password=np;localStorage.setItem(AUTH_KEY,JSON.stringify(auth));toast('Contraseña actualizada');setTimeout(()=>go('more'),500)
 }
-function backup(){let d=backupPayload();if(window.Android?.exportData)window.Android.exportData(d);else{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([d],{type:'application/json'}));a.download='carwash-miami-respaldo.json';a.click()}}
-function wa(phone){confirmWhatsApp(phone)}
-  if(n.length===8)n='506'+n;
-  location.href='https://wa.me/'+n
+function backup(){
+  let d=backupPayload();
+  if(window.Android&&Android.exportBackup)Android.exportBackup(d);
+  else{
+    let a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([d],{type:'application/json'}));
+    a.download='carwash-miami-respaldo.json';
+    a.click()
+  }
 }
+function wa(phone){confirmWhatsApp(phone)}
 render();</script></body></html>
 <style>
 .payPaid{color:#38e792;border-color:#18764c!important}
