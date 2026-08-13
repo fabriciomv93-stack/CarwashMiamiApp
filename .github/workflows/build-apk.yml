@@ -25,11 +25,10 @@ jobs:
           gradle-version: '8.9'
 
       - name: Compilar APK
-        working-directory: CarwashMiamiApp-Android-Project
         run: gradle assembleDebug
 
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Carwash-Miami-APK
-          path: CarwashMiamiApp-Android-Project/app/build/outputs/apk/debug/app-debug.apk
+          name: Carwash-Miami-Ceramico-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
