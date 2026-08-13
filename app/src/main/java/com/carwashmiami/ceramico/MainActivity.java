@@ -34,6 +34,7 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(true);
         s.setAllowContentAccess(true);
         webView.setWebViewClient(new WebViewClient());
+        webView.setWebChromeClient(new WebChromeClient());
         webView.addJavascriptInterface(new Bridge(),"Android");
         webView.loadUrl("file:///android_asset/index.html");
     }
@@ -41,8 +42,7 @@ public class MainActivity extends Activity {
     void channel() {
         if(Build.VERSION.SDK_INT>=26) {
             NotificationChannel c=new NotificationChannel(
-                "ceramico_reminders",
-                "Recordatorios de acabado cerámico",
+                "ceramico_reminders","Recordatorios de acabado cerámico",
                 NotificationManager.IMPORTANCE_HIGH
             );
             c.enableVibration(true);
@@ -60,6 +60,11 @@ public class MainActivity extends Activity {
         } catch(Exception e) { return value; }
     }
 
+    boolean installed(String pkg) {
+        try { getPackageManager().getPackageInfo(pkg,0); return true; }
+        catch(Exception e) { return false; }
+    }
+
     public class Bridge {
         @JavascriptInterface public void scheduleReminder(String id,String name,String plate,String date) {
             schedule(MainActivity.this,id,name,plate,date);
@@ -67,10 +72,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void cancelReminder(String id) {
             AlarmManager am=(AlarmManager)getSystemService(ALARM_SERVICE);
             Intent i=new Intent(MainActivity.this,ReminderReceiver.class);
-            PendingIntent pi=PendingIntent.getBroadcast(
-                MainActivity.this,id.hashCode(),i,
-                PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE
-            );
+            PendingIntent pi=PendingIntent.getBroadcast(MainActivity.this,id.hashCode(),i,
+                PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             am.cancel(pi);
         }
         @JavascriptInterface public void syncData(String j) {
@@ -81,8 +84,8 @@ public class MainActivity extends Activity {
             Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);
             i.addCategory(Intent.CATEGORY_OPENABLE);
             i.setType("application/json");
-            i.putExtra(Intent.EXTRA_TITLE,
-                "CarwashMiami_Respaldo_"+new SimpleDateFormat("yyyy-MM-dd",Locale.US).format(new Date())+".json");
+            i.putExtra(Intent.EXTRA_TITLE,"CarwashMiami_Respaldo_"+
+                new SimpleDateFormat("yyyy-MM-dd",Locale.US).format(new Date())+".json");
             startActivityForResult(i,CREATE_BACKUP);
         }
         @JavascriptInterface public void importBackup() {
@@ -92,19 +95,30 @@ public class MainActivity extends Activity {
             startActivityForResult(i,OPEN_BACKUP);
         }
         @JavascriptInterface public void openWhatsApp(String phone,String msg) {
-            String d=phone==null?"":phone.replaceAll("\\D","");
-            if(d.length()==8)d="506"+d;
-            startActivity(new Intent(Intent.ACTION_VIEW,
-                Uri.parse("https://wa.me/"+d+"?text="+Uri.encode(msg))));
+            runOnUiThread(() -> {
+                try {
+                    String d=phone==null?"":phone.replaceAll("\\D","");
+                    if(d.length()==8)d="506"+d;
+                    Uri uri=Uri.parse("https://wa.me/"+d+"?text="+Uri.encode(msg==null?"":msg));
+                    Intent i=new Intent(Intent.ACTION_VIEW,uri);
+                    if(installed("com.whatsapp.w4b")) i.setPackage("com.whatsapp.w4b");
+                    else if(installed("com.whatsapp")) i.setPackage("com.whatsapp");
+                    startActivity(i);
+                } catch(Exception e) {
+                    try {
+                        String d=phone==null?"":phone.replaceAll("\\D","");
+                        if(d.length()==8)d="506"+d;
+                        startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://wa.me/"+d)));
+                    } catch(Exception ignored) {}
+                }
+            });
         }
-
         @JavascriptInterface public boolean checkLogin(String user,String pass) {
             SharedPreferences sp=getSharedPreferences("cm_security",MODE_PRIVATE);
             String savedUser=sp.getString("user","admin");
             String savedHash=sp.getString("pass_hash",hash("admin"));
             return savedUser.equals(user) && savedHash.equals(hash(pass));
         }
-
         @JavascriptInterface public boolean changePassword(String oldPass,String newPass) {
             if(newPass==null || newPass.length()<4) return false;
             SharedPreferences sp=getSharedPreferences("cm_security",MODE_PRIVATE);
@@ -113,7 +127,6 @@ public class MainActivity extends Activity {
             sp.edit().putString("user","admin").putString("pass_hash",hash(newPass)).apply();
             return true;
         }
-
         @JavascriptInterface public void exitApp() {
             runOnUiThread(() -> {
                 if(Build.VERSION.SDK_INT>=21) finishAndRemoveTask();
@@ -128,9 +141,7 @@ public class MainActivity extends Activity {
                 "if(window.handleAndroidBack){window.handleAndroidBack();}else if(window.Android&&Android.exitApp){Android.exitApp();}",
                 null
             );
-        } else {
-            super.onBackPressed();
-        }
+        } else super.onBackPressed();
     }
 
     @Override protected void onActivityResult(int r,int c,Intent data) {
@@ -153,9 +164,7 @@ public class MainActivity extends Activity {
                 webView.evaluateJavascript(
                     "window.importBackupFromAndroid("+JSONObject.quote(sb.toString())+")",null);
             }
-        } catch(Exception e) {
-            jsToast("No se pudo procesar el respaldo");
-        }
+        } catch(Exception e) { jsToast("No se pudo procesar el respaldo"); }
     }
 
     void jsToast(String m) {
@@ -170,15 +179,10 @@ public class MainActivity extends Activity {
             cal.set(Calendar.MILLISECOND,0);
             if(cal.getTimeInMillis()<=System.currentTimeMillis())
                 cal.setTimeInMillis(System.currentTimeMillis()+15000);
-
             Intent i=new Intent(ctx,ReminderReceiver.class);
-            i.putExtra("name",name);
-            i.putExtra("plate",plate);
-            i.putExtra("id",id);
-            PendingIntent pi=PendingIntent.getBroadcast(
-                ctx,id.hashCode(),i,
-                PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE
-            );
+            i.putExtra("name",name); i.putExtra("plate",plate); i.putExtra("id",id);
+            PendingIntent pi=PendingIntent.getBroadcast(ctx,id.hashCode(),i,
+                PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             ((AlarmManager)ctx.getSystemService(ALARM_SERVICE))
                 .setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,cal.getTimeInMillis(),pi);
         } catch(Exception ignored) {}
