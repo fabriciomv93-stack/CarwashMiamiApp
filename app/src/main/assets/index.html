@@ -202,14 +202,15 @@ function home(){
       <div class="search"><span>⌕</span><input id="q" placeholder="Buscar nombre, placa o teléfono..." oninput="homeFilter()"></div>
       <div id="homeList" class="clientList">${ordered().slice(0,4).map(row).join('')||'<div style="padding:20px;text-align:center;color:#7d94a5">No hay clientes registrados.</div>'}</div>
     </div>
-    <button class="glowBtn" onclick="form()">＋ AGREGAR CLIENTE</button>
+    <button type="button" class="glowBtn" onclick="openClientForm()">＋ AGREGAR CLIENTE</button>
   </div>`
 }
 function homeFilter(){let q=$('q').value.toLowerCase(),a=ordered().filter(c=>[c.name,c.plate,c.phone].join(' ').toLowerCase().includes(q));$('homeList').innerHTML=a.map(row).join('')||'<div style="padding:20px;text-align:center;color:#7d94a5">No se encontraron clientes.</div>'}
-function clientsPage(){$('view').innerHTML=`<div class="page"><div class="sectionCard"><div class="sectionHead"><h2>Clientes</h2><div class="count">${clients.length} registrados</div></div><div class="search"><span>⌕</span><input id="q" placeholder="Buscar nombre, placa o teléfono..." oninput="filterClients()"></div><div id="clientList" class="clientList"></div></div><button class="glowBtn" onclick="form()">＋ AGREGAR CLIENTE</button></div>`;filterClients()}
+function clientsPage(){$('view').innerHTML=`<div class="page"><div class="sectionCard"><div class="sectionHead"><h2>Clientes</h2><div class="count">${clients.length} registrados</div></div><div class="search"><span>⌕</span><input id="q" placeholder="Buscar nombre, placa o teléfono..." oninput="filterClients()"></div><div id="clientList" class="clientList"></div></div><button type="button" class="glowBtn" onclick="openClientForm()">＋ AGREGAR CLIENTE</button></div>`;filterClients()}
 function filterClients(){let q=($('q')?.value||'').toLowerCase(),a=ordered().filter(c=>[c.name,c.plate,c.phone].join(' ').toLowerCase().includes(q));$('clientList').innerHTML=a.map(row).join('')||'<div style="padding:20px;text-align:center;color:#7d94a5">No se encontraron clientes.</div>'}
 function bar(title,right=''){return `<div class="titlebar"><button class="back" onclick="go('clients')">‹</button><h2>${title}</h2><div>${right}</div></div>`}
-function form(id){
+function openClientForm(id){
+  try {
   editId=id||null; let c=id?clients.find(x=>x.id===id):null; let d=c?.serviceDate||new Date().toISOString().slice(0,10);
   period={m:c?.periodMonths??2,d:c?.periodDays??15}; $('hero').classList.add('hidden');
   $('view').innerHTML=bar(c?'Editar cliente':'Agregar cliente',`<button onclick="saveClient()">▣ GUARDAR</button>`)+`<div class="page">
@@ -233,8 +234,9 @@ function form(id){
     </div>
     <div class="estimate panel"><small>Próximo recordatorio estimado</small><strong id="renew">${fmt(calc(d,period.m,period.d))}</strong><em id="periodLabel">${label({periodMonths:period.m,periodDays:period.d})}</em></div>
     <div class="formLabel">Notas (opcional)</div><textarea id="notes" class="input" rows="3" placeholder="Cualquier detalle adicional...">${esc(c?.notes||'')}</textarea>
-    <button class="glowBtn" onclick="saveClient()">GUARDAR CLIENTE</button>
+    <button type="button" class="glowBtn" onclick="saveClient()">GUARDAR CLIENTE</button>
   </div>`
+  } catch(e) { alert("No se pudo abrir el formulario: " + e.message); }
 }
 function setPeriod(m,d,el){period={m,d};document.querySelectorAll('.periodBtn').forEach(x=>x.classList.remove('sel'));if(el?.classList.contains('periodBtn'))el.classList.add('sel');$('customBox').classList.toggle('hidden',m>=0);preview()}
 function customPeriod(){period={m:-1,d:0};preview()}
@@ -251,7 +253,7 @@ function saveClient(){
 }
 function detail(id){
   let c=clients.find(x=>x.id===id); page='detail'; $('hero').classList.add('hidden'); nav();
-  $('view').innerHTML=bar('Detalle del cliente',`<button onclick="form('${c.id}')">✎</button>`)+`<div class="page">
+  $('view').innerHTML=bar('Detalle del cliente',`<button onclick="openClientForm('${c.id}')">✎</button>`)+`<div class="page">
     <div class="panel detailTop"><div class="avatar">${initials(c.name)}</div><div><h2>${esc(c.name)}</h2><span class="plate">${esc(c.plate)}</span><div class="phone"><span class="whatsapp">●</span> ${esc(c.phone)}</div></div></div>
     <div class="panel estimate"><small>Próximo recordatorio</small><strong>${fmt(c.renewalDate)}</strong><em>${label(c)}</em></div>
     <div class="panel infoBox"><h3>Información</h3><div class="infoRow"><span>Fecha del servicio</span><span>${fmt(c.serviceDate)}</span></div><div class="infoRow"><span>Periodo seleccionado</span><span>${label(c)}</span></div><div class="infoRow"><span>Servicio</span><span>Acabado cerámico</span></div><div class="infoRow"><span>Notas</span><span>${esc(c.notes||'—')}</span></div></div>
