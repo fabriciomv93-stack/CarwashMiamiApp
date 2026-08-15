@@ -27,19 +27,41 @@
 .reportPhone{margin-top:4px;color:#79d9ff;font-size:11px;font-weight:800}.reportQuick{display:flex;gap:6px;margin-top:8px}.reportQuick button{flex:1;padding:8px;border-radius:8px;border:1px solid #285169;background:#06141e;color:#d9eaf4;font-size:9px;font-weight:900}.reportQuick .waBtn{border-color:#1b744c;color:#4be59c}
 .paySheet .pendingBack{grid-column:1/-1;border-color:#765b1c;color:#ffd15c}.apptReminder{font-size:10px;color:#ffd15c;margin-top:7px}
 </style>
+
+<style id="v39styles">
+.financeLock{border-color:#8a6720!important}.financeLock .ico{background:#2a1e05;color:#ffd45c}
+.financeBtns{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.financeBtns button{padding:14px 8px;border-radius:11px;border:1px solid #345268;background:#06141e;color:#e4f1f8;font-weight:900}
+.financeBtns .expenseBtn{border-color:#a2562a;color:#ffad72}.financeBtns .monthBtn{border-color:#8a6720;color:#ffd45c}
+.expenseRow{padding:12px;margin-top:8px}.expenseCat{font-size:9px;padding:4px 7px;border:1px solid #5f4b2a;border-radius:999px;color:#ffd17a}.expenseAmount{font-size:17px;color:#ffad72;font-weight:1000}
+.financeSummary{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}.financeSummary .card{padding:12px}.financeSummary small{display:block;color:#8299aa}.financeSummary b{font-size:18px;display:block;margin-top:3px}
+.chartCard{padding:13px;margin-top:10px}.chartTitle{font-size:12px;font-weight:1000;margin-bottom:10px}
+.pieWrap{display:grid;grid-template-columns:120px 1fr;gap:13px;align-items:center}.pie{width:112px;height:112px;border-radius:50%;border:1px solid #35576c}
+.legend{display:grid;gap:6px}.legend div{font-size:10px;color:#c7d7e0}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+.barRow{display:grid;grid-template-columns:100px 1fr 72px;gap:6px;align-items:center;margin:7px 0;font-size:9px}.barTrack{height:10px;background:#0a1d29;border-radius:999px;overflow:hidden}.barFill{height:100%;background:#35c9ff;border-radius:999px}
+.lineSvg{width:100%;height:150px;background:#04111a;border:1px solid #17384d;border-radius:10px}
+.secureNote{padding:10px;border-radius:10px;border:1px solid #73581b;background:#241b07;color:#ffd45c;font-size:10px;margin:9px 0}
+.receiptBox{padding:10px;border:1px dashed #496273;border-radius:9px;margin-top:8px;color:#a9c1d0;font-size:10px}.receiptBox.has{border-color:#27724f;color:#55e8a2}
+.draftBadge{font-size:9px;color:#ffd45c;margin-top:6px}.dangerSmall{border-color:#71323a!important;color:#ff7d85!important}
+</style>
 </head><body><div id="app"></div><div id="toast" class="toast hidden"></div><script>
-const KEY='cm_ceramico_clients_v1',DKEY='cm_daily_records_v1',AUTH_KEY='cm_auth_v1',SESSION_KEY='cm_session_v1',CLOSE_KEY='cm_daily_closures_v1',APPT_KEY='cm_appointments_v1',JOURNEY_KEY='cm_active_journey_v1';
+const KEY='cm_ceramico_clients_v1',DKEY='cm_daily_records_v1',AUTH_KEY='cm_auth_v1',SESSION_KEY='cm_session_v1',CLOSE_KEY='cm_daily_closures_v1',APPT_KEY='cm_appointments_v1',JOURNEY_KEY='cm_active_journey_v1',EXP_KEY='cm_expenses_v1',FIN_KEY='cm_finance_auth_v1',REC_KEY='cm_recovery_code_v1',LAST_PAGE_KEY='cm_last_page_v1',DRAFT_KEY='cm_drafts_v1';
 let old=JSON.parse(localStorage.getItem(KEY)||'[]');
 let clients=old.map(c=>c.vehicles?c:{id:c.id||'c'+Date.now()+Math.random(),name:c.name||'',phone:c.phone||'',notes:c.notes||'',vehicles:c.plate?[{id:'v'+(c.id||Date.now()),brand:'',model:'',plate:c.plate,color:'',ceramic:{serviceDate:c.serviceDate||'',renewalDate:c.renewalDate||'',periodMonths:c.periodMonths??2,periodDays:c.periodDays??15,notes:c.notes||''}}]:[]});
 let daily=JSON.parse(localStorage.getItem(DKEY)||'[]').map(r=>({...r,paymentStatus:r.paymentStatus||'paid',paidDate:r.paidDate||''}));
 let closures=JSON.parse(localStorage.getItem(CLOSE_KEY)||'[]');
 let appointments=JSON.parse(localStorage.getItem(APPT_KEY)||'[]');
+let expenses=JSON.parse(localStorage.getItem(EXP_KEY)||'[]');
+let financeAuth=JSON.parse(localStorage.getItem(FIN_KEY)||'null')||{password:'admin'};
+if(!localStorage.getItem(FIN_KEY))localStorage.setItem(FIN_KEY,JSON.stringify(financeAuth));
+let drafts=JSON.parse(localStorage.getItem(DRAFT_KEY)||'{}');
 let auth=JSON.parse(localStorage.getItem(AUTH_KEY)||'null')||{user:'admin',password:'admin'};
 if(!localStorage.getItem(AUTH_KEY))localStorage.setItem(AUTH_KEY,JSON.stringify(auth));
-let page=localStorage.getItem(SESSION_KEY)==='1'?'home':'login',sel=null,editC=null,editV=null,cerCId=null,cerVId=null,editDailyId=null,reportTab='pending',pendingDeleteClient=null,returnToCeramic=false,editApptId=null,confirmAction=null,cerTab='active',cerQuery='',dailySelectedClientId=null,dailyForceNew=false,payFilter='all';
+let page=localStorage.getItem(SESSION_KEY)==='1'?(localStorage.getItem(LAST_PAGE_KEY)||'home'):'login',sel=null,editC=null,editV=null,cerCId=null,cerVId=null,editDailyId=null,reportTab='pending',pendingDeleteClient=null,returnToCeramic=false,editApptId=null,confirmAction=null,cerTab='active',cerQuery='',dailySelectedClientId=null,dailyForceNew=false,payFilter='all',finUnlocked=false,financeTarget='financeDashboard',editExpenseId=null,expenseReceiptPath='',monthReportValue=today().slice(0,7);
 const $=q=>document.querySelector(q),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function save(){localStorage.setItem(KEY,JSON.stringify(clients));localStorage.setItem(DKEY,JSON.stringify(daily));localStorage.setItem(CLOSE_KEY,JSON.stringify(closures));localStorage.setItem(APPT_KEY,JSON.stringify(appointments));window.Android?.syncData?.(JSON.stringify(clients))}
-function backupPayload(){return JSON.stringify({clients,daily,closures,appointments},null,2)}
+if(!['home','clients','ceramic','daily','reports','appointments','more','dailyForm','clientForm','appointmentForm'].includes(page))page='home';
+
+function save(){localStorage.setItem(KEY,JSON.stringify(clients));localStorage.setItem(DKEY,JSON.stringify(daily));localStorage.setItem(CLOSE_KEY,JSON.stringify(closures));localStorage.setItem(APPT_KEY,JSON.stringify(appointments));localStorage.setItem(EXP_KEY,JSON.stringify(expenses));window.Android?.syncData?.(JSON.stringify(clients))}
+function backupPayload(){return JSON.stringify({clients,daily,closures,appointments,expenses},null,2)}
 function toast(t){let e=$('#toast');e.textContent=t;e.classList.remove('hidden');setTimeout(()=>e.classList.add('hidden'),1600)}
 function today(){let d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`} function activeJourney(){let j=localStorage.getItem(JOURNEY_KEY);if(j)return j;let openDates=[...new Set(daily.map(r=>r.date))].filter(d=>!closures.some(c=>c.date===d&&c.closed)).sort();j=openDates.length?openDates[0]:today();localStorage.setItem(JOURNEY_KEY,j);return j}
 function startNewJourney(){let d=today();localStorage.setItem(JOURNEY_KEY,d);return d}
@@ -79,23 +101,51 @@ function useExistingDaily(id){
 }
 function useNewDaily(){dailySelectedClientId=null;dailyForceNew=true;let b=$('#matchHint');if(b)b.innerHTML='<div class="warnNotice">Cliente nuevo seleccionado. Puedes continuar.</div>'}
 
+
+function persistDrafts(){localStorage.setItem(DRAFT_KEY,JSON.stringify(drafts))}
+function currentDraftType(){
+ if(page==='dailyForm'&&!editDailyId)return'daily';
+ if(page==='clientForm'&&!editC)return'client';
+ if(page==='appointmentForm'&&!editApptId)return'appointment';
+ if(page==='expenseForm'&&!editExpenseId)return'expense';
+ return''
+}
+function captureDraft(){
+ let t=currentDraftType();if(!t)return;
+ let ids=t==='daily'?['dn','dph','dp','db','da','dnotes']:t==='client'?['fn','fp','notes']:t==='appointment'?['an','aph','ap','ad','at','as','ant']:['edate','econcept','ecat','eprovider','eamount','emethod','estatus','enotes'];
+ let d={};ids.forEach(id=>{let e=document.getElementById(id);if(e)d[id]=e.value});
+ if(t==='daily')d.services=[...document.querySelectorAll('.service input:checked')].map(x=>x.value);
+ if(t==='expense')d.receipt=expenseReceiptPath;
+ drafts[t]=d;persistDrafts();localStorage.setItem(LAST_PAGE_KEY,page)
+}
+function restoreDraft(t){
+ let d=drafts[t];if(!d)return;
+ Object.entries(d).forEach(([id,v])=>{if(id==='services'||id==='receipt')return;let e=document.getElementById(id);if(e)e.value=v});
+ if(t==='daily'&&Array.isArray(d.services))document.querySelectorAll('.service input').forEach(x=>x.checked=d.services.includes(x.value));
+ if(t==='expense'&&d.receipt){expenseReceiptPath=d.receipt;updateReceiptBox()}
+ let badge=document.getElementById('draftBadge');if(badge)badge.textContent='Borrador recuperado automáticamente'
+}
+function clearDraft(t){delete drafts[t];persistDrafts();if(localStorage.getItem(LAST_PAGE_KEY)?.includes('Form'))localStorage.removeItem(LAST_PAGE_KEY)}
+document.addEventListener('input',()=>setTimeout(captureDraft,20));
+document.addEventListener('change',()=>setTimeout(captureDraft,20));
+
 function initials(n){return n.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'CM'}
 function nav(a){return`<nav class="nav"><button class="home ${a==='home'?'active':''}" onclick="go('home')"><span class="ni">⌂</span>Inicio</button><button class="clients ${a==='clients'?'active':''}" onclick="go('clients')"><span class="ni">♙</span>Clientes</button><button class="cer ${a==='ceramic'?'active':''}" onclick="go('ceramic')"><span class="ni">♢</span>Cerámicos</button><button class="daily ${a==='daily'?'active':''}" onclick="go('daily')"><span class="ni">▣</span>Diario</button><button class="reports ${a==='reports'?'active':''}" onclick="go('reports')"><span class="ni">▤</span>Reportes</button><button class="appts ${a==='appointments'?'active':''}" onclick="go('appointments')"><span class="ni">◷</span>Citas</button><button class="more ${a==='more'?'active':''}" onclick="go('more')"><span class="ni">•••</span>Más</button></nav>`}
 function bar(t,b='home',r=''){return`<div class="titlebar"><button class="back" onclick="go('${b}')">‹</button><h2>${t}</h2><div>${r}</div></div>`}
 function go(p){
-  page=p;
+  page=p;localStorage.setItem(LAST_PAGE_KEY,p);
   if(['home','clients','ceramic','daily','reports','appointments','more'].includes(p)){sel=null;editC=null;editV=null;editDailyId=null;editApptId=null;}
   render();scrollTo(0,0)
 }
-function render(){({login,home,clients:clientsPage,client:clientPage,clientForm,vehicleForm,ceramic:ceramicPage,ceramicChoice,ceramicForm,daily:dailyPage,dailyForm,reports:reportsPage,appointments:appointmentsPage,appointmentForm,more:morePage,changePass}[page]||home)()}
-function login(){$('#app').innerHTML=`<div class="login"><div class="card loginBox"><div class="brand">CARWASH<span>MIAMI</span></div><div class="sub">Acceso privado · Gestión premium</div><label class="label">Usuario</label><input id="u" class="input"><label class="label">Contraseña</label><input id="p" type="password" class="input"><button class="primary" onclick="doLogin()">INGRESAR</button><div id="e" class="err"></div></div></div>`}
+function render(){({login,home,clients:clientsPage,client:clientPage,clientForm,vehicleForm,ceramic:ceramicPage,ceramicChoice,ceramicForm,daily:dailyPage,dailyForm,reports:reportsPage,appointments:appointmentsPage,appointmentForm,more:morePage,changePass,securityPage,financeLogin,financeDashboard,expenses:expensesPage,expenseForm,monthlyReport,recoverLogin,recoverFinance}[page]||home)()}
+function login(){$('#app').innerHTML=`<div class="login"><div class="card loginBox"><div class="brand">CARWASH<span>MIAMI</span></div><div class="sub">Acceso privado · Gestión premium</div><label class="label">Usuario</label><input id="u" class="input"><label class="label">Contraseña</label><input id="p" type="password" class="input"><button class="primary" onclick="doLogin()">INGRESAR</button><button class="secondary" onclick="page='recoverLogin';render()">OLVIDÉ MI CONTRASEÑA</button><div id="e" class="err"></div></div></div>`}
 function doLogin(){
   let u=$('#u').value.trim().toLowerCase(),p=$('#p').value;
   if(u===String(auth.user||'admin').toLowerCase()&&p===auth.password){
     localStorage.setItem(SESSION_KEY,'1');page='home';render()
   }else $('#e').textContent='Usuario o contraseña incorrectos'
 }
-function logout(){localStorage.removeItem(SESSION_KEY);page='login';render()}
+function logout(){localStorage.removeItem(SESSION_KEY);localStorage.removeItem(LAST_PAGE_KEY);finUnlocked=false;page='login';render()}
 function home(){
   let cer=clients.reduce((s,c)=>s+c.vehicles.filter(v=>v.ceramic?.renewalDate).length,0),journey=activeJourney(),dr=daily.filter(r=>r.date===journey),todayAppts=(appointments||[]).filter(a=>a&&a.date===today()&&a.status!=='cancelled').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   let apptsHtml=todayAppts.length?todayAppts.map(a=>`<div class="card" style="padding:12px;margin-top:8px;border-color:#195b70" onclick="go('appointments')"><div style="display:flex;justify-content:space-between;gap:10px"><div><b>${esc(a.name||'Cliente')}</b><div style="color:#3bd8ff;font-weight:900">${esc(a.time||'')}</div><div class="meta">${esc([a.plate,a.service].filter(Boolean).join(' · ')||'Cita programada')}</div></div><span class="apptStatus ${a.status||'scheduled'}">${a.status==='done'?'COMPLETADA':'AGENDADA'}</span></div></div>`).join(''):`<div class="card" style="padding:14px;text-align:center;color:#8299aa" onclick="go('appointments')">No hay citas programadas para hoy.</div>`;
@@ -114,9 +164,9 @@ function clientForm(){
  <label class="label">Teléfono / WhatsApp</label><input id="fp" class="input fieldGuide field-phone" value="${esc(c?.phone||'')}">
  <div class="contactActions"><button class="pick" onclick="pickContact('client')">👤 ELEGIR CONTACTO</button><button class="savec" onclick="saveToPhoneContacts('client')">＋ GUARDAR EN CONTACTOS</button></div>
  <label class="label">Notas</label><textarea id="notes" class="input" rows="3">${esc(c?.notes||'')}</textarea><button class="primary" onclick="saveClient()">GUARDAR CLIENTE</button>
- </div></div>${nav('clients')}</div>`
+ <div id="draftBadge" class="draftBadge"></div></div></div>${nav('clients')}</div>`;setTimeout(()=>restoreDraft('client'),0)
 }
-function saveClient(){let name=$('#fn').value.trim(),phone=$('#fp').value.trim(),notes=$('#notes').value.trim();if(!name)return toast('Escribe el nombre');let duplicate=findExistingClient(name,phone,'',editC);if(!editC&&duplicate){askConfirm('Cliente existente','Ya existe un cliente con ese teléfono. ¿Deseas abrir el cliente existente?','VER CLIENTE',()=>{sel=duplicate.id;page='client';render()});return}if(editC){let c=clients.find(x=>x.id===editC);Object.assign(c,{name,phone,notes});sel=c.id}else{let c={id:'c'+Date.now(),name,phone,notes,vehicles:[]};clients.push(c);sel=c.id}save();if(returnToCeramic){returnToCeramic=false;cerCId=sel;cerVId=null;page='ceramicForm';render();toast('Cliente guardado');return}page='client';render();toast('Cliente guardado')}
+function saveClient(){let name=$('#fn').value.trim(),phone=$('#fp').value.trim(),notes=$('#notes').value.trim();if(!name)return toast('Escribe el nombre');let duplicate=findExistingClient(name,phone,'',editC);if(!editC&&duplicate){askConfirm('Cliente existente','Ya existe un cliente con ese teléfono. ¿Deseas abrir el cliente existente?','VER CLIENTE',()=>{sel=duplicate.id;page='client';render()});return}if(editC){let c=clients.find(x=>x.id===editC);Object.assign(c,{name,phone,notes});sel=c.id}else{let c={id:'c'+Date.now(),name,phone,notes,vehicles:[]};clients.push(c);sel=c.id}save();if(returnToCeramic){returnToCeramic=false;cerCId=sel;cerVId=null;page='ceramicForm';render();toast('Cliente guardado');return}if(!editC)clearDraft('client');page='client';render();toast('Cliente guardado')}
 function newVeh(){editV=null;page='vehicleForm';render()} function editVeh(id){editV=id;page='vehicleForm';render()}
 function vehicleForm(){let c=clients.find(x=>x.id===sel),v=editV?c.vehicles.find(x=>x.id===editV):null,ce=v?.ceramic||{};$('#app').innerHTML=`<div class="app">${bar(v?'Editar vehículo':'Agregar vehículo','client','<button class="headBtn" onclick="saveVehicle()">✓</button>')}<div class="page"><div class="card form"><div class="row2"><div><label class="label">Marca</label><input id="vb" class="input" value="${esc(v?.brand||'')}"></div><div><label class="label">Modelo</label><input id="vm" class="input" value="${esc(v?.model||'')}"></div></div><label class="label">Placa</label><input id="vp" class="input" value="${esc(v?.plate||'')}"><label class="label">Color</label><input id="vc" class="input" value="${esc(v?.color||'')}"><div class="section"><b>Acabado cerámico</b><span class="meta">Opcional</span></div><label class="label">Fecha del servicio</label><input id="sd" type="date" class="input" value="${esc(ce.serviceDate||'')}"><div class="row2"><div><label class="label">Meses</label><input id="pm" type="number" min="0" class="input" value="${ce.periodMonths??2}"></div><div><label class="label">Días</label><input id="pd" type="number" min="0" class="input" value="${ce.periodDays??15}"></div></div><label class="label">Notas</label><textarea id="vn" class="input" rows="3">${esc(ce.notes||'')}</textarea><button class="primary" onclick="saveVehicle()">GUARDAR VEHÍCULO</button>${v?'<button class="danger" onclick="deleteVehicle()">ELIMINAR VEHÍCULO</button>':''}</div></div>${nav('clients')}</div>`}
 function saveVehicle(){let c=clients.find(x=>x.id===sel),brand=$('#vb').value.trim(),model=$('#vm').value.trim(),plate=$('#vp').value.trim().toUpperCase(),color=$('#vc').value.trim(),sd=$('#sd').value,pm=Number($('#pm').value||0),pd=Number($('#pd').value||0),notes=$('#vn').value.trim();if(!plate)return toast('Escribe la placa');let owner=clients.find(x=>x.id!==sel&&x.vehicles.some(v=>normPlate(v.plate)===normPlate(plate)));if(owner){askConfirm('Placa existente','La placa '+plate+' ya está registrada a '+owner.name+'.','VER CLIENTE',()=>{sel=owner.id;page='client';render()});return}let sameOther=c.vehicles.find(v=>v.id!==editV&&normPlate(v.plate)===normPlate(plate));if(sameOther)return toast('Esta placa ya está registrada');let ceramic=sd?{serviceDate:sd,periodMonths:pm,periodDays:pd,renewalDate:calc(sd,pm,pd),notes}:{};if(editV)Object.assign(c.vehicles.find(x=>x.id===editV),{brand,model,plate,color,ceramic});else c.vehicles.push({id:'v'+Date.now(),brand,model,plate,color,ceramic});save();page='client';render()}
@@ -186,7 +236,7 @@ function dailyForm(){
     <div class="guideLabel g-amount"><span class="guideIcon">₡</span>Monto</div><input id="da" type="number" inputmode="numeric" class="input fieldGuide field-amount" value="${r?.amount??''}">
     <div class="guideLabel g-notes"><span class="guideIcon">✎</span>Notas</div><textarea id="dnotes" class="input fieldGuide field-notes" rows="2">${esc(r?.notes||'')}</textarea>
     <div class="warnNotice">Se guardará como <b>PENDIENTE DE PAGO</b>. El método se selecciona cuando el cliente pague.</div><button class="primary" onclick="saveDaily()">GUARDAR INGRESO</button>
-  </div></div>${nav('daily')}</div>`;setTimeout(dailyMatchHint,0)
+  <div id="draftBadge" class="draftBadge"></div></div></div>${nav('daily')}</div>`;setTimeout(()=>{restoreDraft('daily');dailyMatchHint()},0)
 }
 function dailyMatchHint(){
  let n=$('#dn')?.value||'',p=$('#dph')?.value||'',pl=$('#dp')?.value||'',box=$('#matchHint');if(!box)return;
@@ -199,7 +249,7 @@ function dailyMatchHint(){
   box.innerHTML=`<div class="warnNotice">Hay ${matches.length} cliente${matches.length===1?'':'s'} con un nombre parecido. Elige solo si corresponde:</div><div class="nameMatches">${matches.map(c=>`<div class="nameMatch"><div><b>${esc(c.name)}</b><small>${esc(c.phone||'Sin teléfono')} · ${esc((c.vehicles||[]).map(v=>v.plate).filter(Boolean).join(', ')||'Sin placa')}</small></div><button onclick="useExistingDaily('${c.id}')">USAR</button></div>`).join('')}</div><button class="secondary" onclick="useNewDaily()">ES UN CLIENTE NUEVO</button>`
  }else box.innerHTML='<div class="quickHint">Si es nuevo, se agregará automáticamente al guardar.</div>'
 }
-function saveDaily(){let n=$('#dn').value.trim(),p=$('#dp').value.trim().toUpperCase(),phone=$('#dph').value.trim(),brand=$('#db').value.trim();if(!n||!p)return toast('Completa nombre y placa');let old=editDailyId?daily.find(x=>x.id===editDailyId):null,existing=findClientForDaily(n,phone,p);if(!existing){existing={id:'c'+Date.now(),name:n,phone,notes:'',vehicles:[]};clients.push(existing)}else if(!existing.phone&&phone)existing.phone=phone;let vehicle=existing.vehicles.find(v=>normPlate(v.plate)===normPlate(p));if(!vehicle)existing.vehicles.push({id:'v'+Date.now()+Math.random(),brand,model:'',plate:p,color:'',ceramic:{}});else if(!vehicle.brand&&brand)vehicle.brand=brand;let data={date:old?.date||activeJourney(),name:n,plate:p,brand,phone,amount:Number($('#da').value||0),notes:$('#dnotes').value.trim(),services:[...document.querySelectorAll('.service input:checked')].map(x=>x.value),paymentStatus:old?.paymentStatus||'pending',paymentMethod:old?.paymentMethod||'',paidDate:old?.paidDate||''};if(editDailyId)Object.assign(old,data);else daily.push({id:'d'+Date.now(),...data});save();editDailyId=null;go('daily');toast('Ingreso guardado como pendiente')}
+function saveDaily(){let n=$('#dn').value.trim(),p=$('#dp').value.trim().toUpperCase(),phone=$('#dph').value.trim(),brand=$('#db').value.trim();if(!n||!p)return toast('Completa nombre y placa');let old=editDailyId?daily.find(x=>x.id===editDailyId):null,existing=findClientForDaily(n,phone,p);if(!existing){existing={id:'c'+Date.now(),name:n,phone,notes:'',vehicles:[]};clients.push(existing)}else if(!existing.phone&&phone)existing.phone=phone;let vehicle=existing.vehicles.find(v=>normPlate(v.plate)===normPlate(p));if(!vehicle)existing.vehicles.push({id:'v'+Date.now()+Math.random(),brand,model:'',plate:p,color:'',ceramic:{}});else if(!vehicle.brand&&brand)vehicle.brand=brand;let data={date:old?.date||activeJourney(),name:n,plate:p,brand,phone,amount:Number($('#da').value||0),notes:$('#dnotes').value.trim(),services:[...document.querySelectorAll('.service input:checked')].map(x=>x.value),paymentStatus:old?.paymentStatus||'pending',paymentMethod:old?.paymentMethod||'',paidDate:old?.paidDate||''};if(editDailyId)Object.assign(old,data);else daily.push({id:'d'+Date.now(),...data});save();if(!editDailyId)clearDraft('daily');editDailyId=null;go('daily');toast('Ingreso guardado como pendiente')}
 function deleteDaily(id){askConfirm('Eliminar registro','¿Estás seguro de que deseas eliminar este registro del control diario?','SÍ, ELIMINAR',()=>{daily=daily.filter(x=>x.id!==id);save();render();toast('Registro eliminado')})}
 function choosePayment(id){let r=daily.find(x=>x.id===id);if(!r)return;document.getElementById('genericConfirm')?.remove();document.body.insertAdjacentHTML('beforeend',`<div id="genericConfirm" class="confirmBox"><div class="confirmCard"><h3>Registrar pago</h3><p>${esc(r.name)} · ${esc(r.plate)} · ${money(r.amount)}</p><div class="paySheet"><button class="cash" onclick="markPaidMethod('${id}','cash')">EFECTIVO</button><button class="cardpay" onclick="markPaidMethod('${id}','card')">TARJETA</button><button class="sinpe" onclick="markPaidMethod('${id}','sinpe')">SINPE</button></div><button class="secondary" onclick="closeConfirm()">CANCELAR</button></div></div>`)}
 function markPaidMethod(id,method){let r=daily.find(x=>x.id===id);if(!r)return;r.paymentStatus='paid';r.paymentMethod=method;r.paidDate=today();save();closeConfirm();render();toast('Pago registrado')}
@@ -250,8 +300,8 @@ function appointmentForm(){
  <div class="row2"><div><label class="label">Fecha</label><input id="ad" type="date" class="input" value="${esc(a?.date||today())}"></div><div><label class="label">Hora</label><input id="at" type="time" class="input" value="${esc(a?.time||'08:00')}"></div></div>
  <div class="apptReminder">🔔 Aviso automático 20 minutos antes.</div>
  <label class="label">Servicio</label><input id="as" class="input" value="${esc(a?.service||'')}">
- <label class="label">Notas</label><textarea id="ant" class="input" rows="3">${esc(a?.notes||'')}</textarea><button class="primary" onclick="saveAppointment()">GUARDAR CITA</button>
- </div></div>${nav('appointments')}</div>`
+ <label class="label">Notas</label><textarea id="ant" class="input" rows="3">${esc(a?.notes||'')}</textarea><button class="primary" onclick="saveAppointment()">GUARDAR CITA</button><div id="draftBadge" class="draftBadge"></div>
+ </div></div>${nav('appointments')}</div>`;setTimeout(()=>restoreDraft('appointment'),0)
 }
 function saveAppointment(){
  let name=$('#an').value.trim(),date=$('#ad').value,time=$('#at').value;if(!name||!date||!time)return toast('Completa cliente, fecha y hora');
@@ -259,17 +309,108 @@ function saveAppointment(){
  if(editApptId){a=appointments.find(x=>x.id===editApptId);Object.assign(a,{name,phone,plate,date,time,service,notes,status:a.status||'scheduled'})}
  else{a={id:'a'+Date.now(),name,phone,plate,date,time,service,notes,status:'scheduled'};appointments.push(a)}
  save();if(window.Android&&Android.scheduleAppointment)Android.scheduleAppointment(a.id,a.name,a.plate,a.service,a.date,a.time);
- editApptId=null;go('appointments');toast('Cita guardada · aviso 20 min antes')
+ if(!editApptId)clearDraft('appointment');editApptId=null;go('appointments');toast('Cita guardada · aviso 20 min antes')
 }
 function deleteAppointment(id){
  askConfirm('Eliminar cita','¿Estás seguro de que deseas eliminar esta cita?','SÍ, ELIMINAR',()=>{if(window.Android&&Android.cancelAppointment)Android.cancelAppointment(id);appointments=appointments.filter(x=>x.id!==id);save();render();toast('Cita eliminada')})
 }
 function toggleAppointment(id){let a=appointments.find(x=>x.id===id);if(!a)return;a.status=a.status==='done'?'scheduled':'done';save();render()}
 
+
+function openFinance(target='financeDashboard'){financeTarget=target;if(finUnlocked){page=target;render()}else{page='financeLogin';render()}}
+function financeLogin(){
+ $('#app').innerHTML=`<div class="app">${bar('Acceso a Finanzas','more')}<div class="page"><div class="card form financeLock"><b>🔒 Información sensible</b><div class="meta">Gastos y reportes mensuales requieren una clave independiente.</div><label class="label">Clave de Finanzas</label><input id="finp" type="password" class="input"><button class="primary" onclick="unlockFinance()">DESBLOQUEAR</button><button class="secondary" onclick="page='recoverFinance';render()">RECUPERAR CLAVE</button></div></div>${nav('more')}</div>`
+}
+function unlockFinance(){if($('#finp').value!==financeAuth.password)return toast('Clave incorrecta');finUnlocked=true;page=financeTarget||'financeDashboard';render()}
+function lockFinance(){finUnlocked=false;go('more');toast('Finanzas bloqueadas')}
+function financeDashboard(){
+ if(!finUnlocked)return openFinance('financeDashboard');
+ let ym=today().slice(0,7),monthExp=expenses.filter(e=>e.date?.startsWith(ym)).reduce((s,e)=>s+Number(e.amount||0),0);
+ $('#app').innerHTML=`<div class="app">${bar('Finanzas','more')}<div class="page"><div class="card form financeLock"><div class="recordTop"><div><b>🔐 Panel financiero</b><div class="meta">Gastos, análisis mensual y exportación PDF.</div></div><button class="headBtn" onclick="lockFinance()">🔒</button></div><div class="financeBtns"><button class="expenseBtn" onclick="page='expenses';render()">💸 GASTOS</button><button class="monthBtn" onclick="page='monthlyReport';render()">📊 REPORTE MENSUAL</button></div><div class="meta" style="margin-top:10px">Gastos registrados este mes: ${money(monthExp)}</div></div></div>${nav('more')}</div>`
+}
+function expensesPage(){
+ if(!finUnlocked)return openFinance('expenses');
+ let list=[...expenses].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+ let h=list.map(e=>`<div class="card expenseRow"><div class="recordTop"><div><b>${esc(e.concept)}</b><div class="meta">${fmt(e.date)} · ${esc(e.provider||'Sin proveedor')}</div><span class="expenseCat">${esc(e.category||'Otros')}</span>${e.receiptPath?'<div class="meta">📎 Comprobante adjunto</div>':''}</div><div class="expenseAmount">${money(e.amount)}</div></div><div class="chips"><span class="chip">${esc(payLabel(e.method))}</span><span class="chip ${e.status==='pending'?'payPending':'payPaid'}">${e.status==='pending'?'PENDIENTE':'PAGADO'}</span></div><div class="action2"><button onclick="editExpense('${e.id}')">EDITAR</button><button class="dangerBtn" onclick="deleteExpense('${e.id}')">ELIMINAR</button></div></div>`).join('');
+ $('#app').innerHTML=`<div class="app">${bar('Gastos','financeDashboard')}<div class="page">${h||'<div class="card" style="padding:20px;text-align:center;color:#8299aa">No hay gastos registrados.</div>'}</div><button class="fab" onclick="editExpenseId=null;expenseReceiptPath='';page='expenseForm';render()">＋</button>${nav('more')}</div>`
+}
+function editExpense(id){editExpenseId=id;expenseReceiptPath=expenses.find(x=>x.id===id)?.receiptPath||'';page='expenseForm';render()}
+function expenseForm(){
+ if(!finUnlocked)return openFinance('expenses');
+ let e=editExpenseId?expenses.find(x=>x.id===editExpenseId):null;expenseReceiptPath=e?.receiptPath||expenseReceiptPath||'';
+ $('#app').innerHTML=`<div class="app">${bar(e?'Editar gasto':'Nuevo gasto','expenses','<button class="headBtn" onclick="saveExpense()">✓</button>')}<div class="page"><div class="card form">
+ <label class="label">Fecha</label><input id="edate" type="date" class="input" value="${esc(e?.date||today())}">
+ <label class="label">Concepto</label><input id="econcept" class="input" value="${esc(e?.concept||'')}">
+ <label class="label">Categoría</label><select id="ecat" class="input">${['Productos','Salarios','Electricidad','Agua','Alquiler','Mantenimiento','Repuestos','Impuestos','Servicios','Otros'].map(x=>`<option ${e?.category===x?'selected':''}>${x}</option>`).join('')}</select>
+ <label class="label">Proveedor</label><input id="eprovider" class="input" value="${esc(e?.provider||'')}">
+ <label class="label">Monto</label><input id="eamount" type="number" inputmode="numeric" class="input" value="${e?.amount??''}">
+ <label class="label">Método de pago</label><select id="emethod" class="input"><option value="cash" ${e?.method==='cash'?'selected':''}>Efectivo</option><option value="card" ${e?.method==='card'?'selected':''}>Tarjeta</option><option value="sinpe" ${e?.method==='sinpe'?'selected':''}>SINPE</option></select>
+ <label class="label">Estado</label><select id="estatus" class="input"><option value="paid" ${e?.status!=='pending'?'selected':''}>Pagado</option><option value="pending" ${e?.status==='pending'?'selected':''}>Pendiente de pagar</option></select>
+ <label class="label">Notas</label><textarea id="enotes" class="input" rows="3">${esc(e?.notes||'')}</textarea>
+ <button class="secondary" onclick="pickReceipt()">📷 ADJUNTAR FOTO / COMPROBANTE</button><div id="receiptBox" class="receiptBox ${expenseReceiptPath?'has':''}">${expenseReceiptPath?'📎 Comprobante guardado':'Sin comprobante adjunto'}</div>
+ <div class="meta">La foto se comprime/copia como archivo separado para no inflar la base de datos.</div><button class="primary" onclick="saveExpense()">GUARDAR GASTO</button><div id="draftBadge" class="draftBadge"></div>
+ </div></div>${nav('more')}</div>`;setTimeout(()=>restoreDraft('expense'),0)
+}
+function updateReceiptBox(){let b=$('#receiptBox');if(b){b.className='receiptBox '+(expenseReceiptPath?'has':'');b.textContent=expenseReceiptPath?'📎 Comprobante guardado':'Sin comprobante adjunto'}}
+function pickReceipt(){if(window.Android&&Android.pickReceipt)Android.pickReceipt();else toast('Selector de comprobante no disponible')}
+window.onReceiptPicked=function(path){expenseReceiptPath=path||'';updateReceiptBox();captureDraft()}
+function saveExpense(){
+ let concept=$('#econcept').value.trim(),amount=Number($('#eamount').value||0);if(!concept||amount<=0)return toast('Completa concepto y monto');
+ let data={date:$('#edate').value,concept,category:$('#ecat').value,provider:$('#eprovider').value.trim(),amount,method:$('#emethod').value,status:$('#estatus').value,notes:$('#enotes').value.trim(),receiptPath:expenseReceiptPath};
+ if(editExpenseId)Object.assign(expenses.find(x=>x.id===editExpenseId),data);else expenses.push({id:'e'+Date.now(),...data});
+ save();if(!editExpenseId)clearDraft('expense');editExpenseId=null;expenseReceiptPath='';page='expenses';render();toast('Gasto guardado')
+}
+function deleteExpense(id){askConfirm('Eliminar gasto','¿Estás seguro de que deseas eliminar este gasto?','SÍ, ELIMINAR',()=>{expenses=expenses.filter(x=>x.id!==id);save();render();toast('Gasto eliminado')})}
+
+function monthlyData(ym){
+ let rows=daily.filter(r=>r.date?.startsWith(ym)),paid=rows.filter(r=>r.paymentStatus==='paid'),pending=rows.filter(r=>r.paymentStatus!=='paid');
+ let exp=expenses.filter(e=>e.date?.startsWith(ym)),expPaid=exp.filter(e=>e.status!=='pending');
+ let payment={cash:0,card:0,sinpe:0};paid.forEach(r=>payment[r.paymentMethod||'cash']=(payment[r.paymentMethod||'cash']||0)+Number(r.amount||0));
+ let services={};rows.forEach(r=>{let ss=(r.services||[]).length?r.services:['Otro'];let share=Number(r.amount||0)/ss.length;ss.forEach(s=>services[s]=(services[s]||0)+share)});
+ let dailyMap={};rows.forEach(r=>dailyMap[r.date]=(dailyMap[r.date]||0)+Number(r.amount||0));
+ return{ym,rows,paid,pending,exp,expPaid,payment,services,dailyMap,sales:rows.reduce((s,r)=>s+Number(r.amount||0),0),collected:paid.reduce((s,r)=>s+Number(r.amount||0),0),pendingAmount:pending.reduce((s,r)=>s+Number(r.amount||0),0),expensesPaid:expPaid.reduce((s,e)=>s+Number(e.amount||0),0)}
+}
+function pieCss(p){let t=p.cash+p.card+p.sinpe;if(!t)return'conic-gradient(#17384d 0 100%)';let a=p.cash/t*100,b=a+p.card/t*100;return`conic-gradient(#35e695 0 ${a}%,#3bd8ff ${a}% ${b}%,#c079ff ${b}% 100%)`}
+function lineSvg(d){
+ let vals=Object.entries(d.dailyMap).sort(),w=320,h=130;if(!vals.length)return'<div class="meta">Sin ventas en este mes.</div>';let max=Math.max(...vals.map(x=>x[1]),1),pts=vals.map((x,i)=>`${10+(w-20)*(vals.length===1?.5:i/(vals.length-1))},${h-10-(h-20)*x[1]/max}`).join(' ');
+ return`<svg class="lineSvg" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="#35c9ff" stroke-width="3"/><line x1="10" y1="${h-10}" x2="${w-10}" y2="${h-10}" stroke="#315064"/></svg>`
+}
+function monthlyReport(){
+ if(!finUnlocked)return openFinance('monthlyReport');let d=monthlyData(monthReportValue),ticket=d.rows.length?d.sales/d.rows.length:0,result=d.collected-d.expensesPaid,maxS=Math.max(...Object.values(d.services),1);
+ let serviceBars=Object.entries(d.services).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="barRow"><span>${esc(k)}</span><div class="barTrack"><div class="barFill" style="width:${v/maxS*100}%"></div></div><b>${money(v)}</b></div>`).join('');
+ $('#app').innerHTML=`<div class="app">${bar('Reporte mensual','financeDashboard')}<div class="page"><div class="card form"><label class="label">Mes</label><input type="month" class="input" value="${monthReportValue}" onchange="monthReportValue=this.value;render()"></div>
+ <div class="financeSummary"><div class="card"><small>Ventas registradas</small><b>${money(d.sales)}</b></div><div class="card"><small>Cobrado</small><b style="color:#35e695">${money(d.collected)}</b></div><div class="card"><small>Pendiente</small><b style="color:#ffd45c">${money(d.pendingAmount)}</b></div><div class="card"><small>Gastos pagados</small><b style="color:#ff9f70">${money(d.expensesPaid)}</b></div><div class="card"><small>Resultado operativo</small><b>${money(result)}</b></div><div class="card"><small>Ticket promedio</small><b>${money(ticket)}</b></div></div>
+ <div class="chartCard card"><div class="chartTitle">🍕 Formas de pago</div><div class="pieWrap"><div class="pie" style="background:${pieCss(d.payment)}"></div><div class="legend"><div><i style="background:#35e695"></i>Efectivo ${money(d.payment.cash)}</div><div><i style="background:#3bd8ff"></i>Tarjeta ${money(d.payment.card)}</div><div><i style="background:#c079ff"></i>SINPE ${money(d.payment.sinpe)}</div></div></div></div>
+ <div class="chartCard card"><div class="chartTitle">📊 Ventas estimadas por servicio</div>${serviceBars||'<div class="meta">Sin servicios registrados.</div>'}<div class="meta">Si un ingreso tiene varios servicios, el monto se distribuye entre ellos para evitar duplicar ventas.</div></div>
+ <div class="chartCard card"><div class="chartTitle">📈 Ventas por día</div>${lineSvg(d)}</div>
+ <button class="primary" onclick="exportMonthlyPdf()">EXPORTAR REPORTE EN PDF</button><div class="secureNote">Resultado operativo = dinero cobrado − gastos pagados registrados. No sustituye la contabilidad fiscal oficial.</div>
+ </div>${nav('more')}</div>`
+}
+function exportMonthlyPdf(){
+ let d=monthlyData(monthReportValue),payload={month:monthReportValue,sales:d.sales,collected:d.collected,pending:d.pendingAmount,expenses:d.expensesPaid,result:d.collected-d.expensesPaid,ticket:d.rows.length?d.sales/d.rows.length:0,payment:d.payment,services:d.services,daily:d.dailyMap,records:d.rows,expenseRecords:d.exp};
+ if(window.Android&&Android.exportMonthlyPdf)Android.exportMonthlyPdf(JSON.stringify(payload));else toast('Exportación PDF disponible en Android')
+}
+function securityPage(){
+ let hasRec=!!localStorage.getItem(REC_KEY);
+ $('#app').innerHTML=`<div class="app">${bar('Seguridad','more')}<div class="page"><div class="card form"><b>Contraseñas</b><button class="secondary" onclick="page='changePass';render()">CAMBIAR CLAVE DE INGRESO</button><label class="label">Clave actual de Finanzas</label><input id="fcur" type="password" class="input"><label class="label">Nueva clave de Finanzas</label><input id="fnew" type="password" class="input"><button class="secondary" onclick="changeFinancePass()">CAMBIAR CLAVE DE FINANZAS</button></div>
+ <div class="card form" style="margin-top:9px"><b>Código de recuperación</b><div class="meta">${hasRec?'Ya configurado. Puedes reemplazarlo.':'Aún no configurado. Créalo y guárdalo en un lugar seguro.'}</div><label class="label">Contraseña actual de ingreso</label><input id="recAuth" type="password" class="input"><label class="label">Nuevo código de recuperación</label><input id="recCode" class="input"><button class="primary" onclick="setRecoveryCode()">GUARDAR CÓDIGO</button></div></div>${nav('more')}</div>`
+}
+function changeFinancePass(){let c=$('#fcur').value,n=$('#fnew').value;if(c!==financeAuth.password)return toast('Clave actual incorrecta');if(n.length<4)return toast('Usa al menos 4 caracteres');financeAuth.password=n;localStorage.setItem(FIN_KEY,JSON.stringify(financeAuth));toast('Clave de Finanzas actualizada')}
+function setRecoveryCode(){if($('#recAuth').value!==auth.password)return toast('Contraseña de ingreso incorrecta');let c=$('#recCode').value.trim();if(c.length<6)return toast('Usa un código de al menos 6 caracteres');localStorage.setItem(REC_KEY,c);toast('Código de recuperación guardado')}
+function recoverLogin(){
+ $('#app').innerHTML=`<div class="login"><div class="card loginBox"><div class="brand">CARWASH<span>MIAMI</span></div><div class="sub">Recuperar acceso</div><label class="label">Código de recuperación</label><input id="rrc" class="input"><label class="label">Nueva contraseña</label><input id="rrp" type="password" class="input"><button class="primary" onclick="doRecoverLogin()">RESTABLECER</button><button class="secondary" onclick="page='login';render()">VOLVER</button></div></div>`
+}
+function doRecoverLogin(){let saved=localStorage.getItem(REC_KEY);if(!saved)return toast('No hay código de recuperación configurado');if($('#rrc').value.trim()!==saved)return toast('Código incorrecto');let p=$('#rrp').value;if(p.length<4)return toast('Usa al menos 4 caracteres');auth.password=p;localStorage.setItem(AUTH_KEY,JSON.stringify(auth));toast('Contraseña restablecida');setTimeout(()=>{page='login';render()},500)}
+function recoverFinance(){
+ $('#app').innerHTML=`<div class="app">${bar('Recuperar Finanzas','more')}<div class="page"><div class="card form"><label class="label">Código de recuperación</label><input id="frc" class="input"><label class="label">Nueva clave de Finanzas</label><input id="frp" type="password" class="input"><button class="primary" onclick="doRecoverFinance()">RESTABLECER</button></div></div>${nav('more')}</div>`
+}
+function doRecoverFinance(){let saved=localStorage.getItem(REC_KEY);if(!saved)return toast('No hay código de recuperación configurado');if($('#frc').value.trim()!==saved)return toast('Código incorrecto');let p=$('#frp').value;if(p.length<4)return toast('Usa al menos 4 caracteres');financeAuth.password=p;localStorage.setItem(FIN_KEY,JSON.stringify(financeAuth));toast('Clave de Finanzas restablecida');setTimeout(()=>go('more'),500)}
+
 function morePage(){$('#app').innerHTML=`<div class="app">${bar('Más')}<div class="page">
-<div class="card form"><b>Respaldo de datos</b><div class="meta">Conserva clientes, vehículos, acabados y control diario.</div><button class="secondary" onclick="backup()">EXPORTAR RESPALDO</button><button class="secondary" onclick="document.getElementById('restoreFile').click()">IMPORTAR / RESTAURAR</button><input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreBackup(this)"></div>
-<div class="card form" style="margin-top:9px"><b>Seguridad</b><div class="meta">La sesión permanece abierta hasta que tú decidas cerrarla.</div><button class="secondary" onclick="page='changePass';render()">CAMBIAR CONTRASEÑA</button></div>
-<div class="card form" style="margin-top:9px"><b>Versión</b><div class="meta">Carwash Miami 3.8</div></div>
+<div class="card homeCard financeLock" onclick="openFinance('financeDashboard')"><div class="ico">🔐</div><div><b>FINANZAS</b><small>Gastos, reporte mensual, gráficos y PDF.</small></div><div>›</div></div>
+<div class="card form" style="margin-top:9px"><b>Respaldo de datos</b><div class="meta">Conserva clientes, vehículos, acabados, citas, control diario y gastos. Las fotos de comprobantes quedan como archivos separados.</div><button class="secondary" onclick="backup()">EXPORTAR RESPALDO</button><button class="secondary" onclick="document.getElementById('restoreFile').click()">IMPORTAR / RESTAURAR</button><input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreBackup(this)"></div>
+<div class="card form" style="margin-top:9px"><b>Seguridad</b><div class="meta">Contraseña de ingreso, clave de Finanzas y código de recuperación.</div><button class="secondary" onclick="page='securityPage';render()">CONFIGURAR SEGURIDAD</button></div>
+<div class="card form" style="margin-top:9px"><b>Versión</b><div class="meta">Carwash Miami 3.9</div></div>
 <button class="danger" onclick="logout()">CERRAR SESIÓN</button></div>${nav('more')}</div>`}
 function restoreBackup(input){
   let f=input.files?.[0];if(!f)return;
@@ -278,7 +419,7 @@ function restoreBackup(input){
     let d=JSON.parse(r.result);
     if(!Array.isArray(d.clients)||!Array.isArray(d.daily))throw new Error();
     if(!confirm('¿Restaurar este respaldo? Reemplazará los datos actuales.'))return;
-    clients=d.clients;daily=d.daily;closures=Array.isArray(d.closures)?d.closures:[];appointments=Array.isArray(d.appointments)?d.appointments:[];save();toast('Respaldo restaurado');setTimeout(()=>go('home'),500)
+    clients=d.clients;daily=d.daily;closures=Array.isArray(d.closures)?d.closures:[];appointments=Array.isArray(d.appointments)?d.appointments:[];expenses=Array.isArray(d.expenses)?d.expenses:[];save();toast('Respaldo restaurado');setTimeout(()=>go('home'),500)
   }catch(e){toast('El archivo no es un respaldo válido')}};
   r.readAsText(f)
 }
