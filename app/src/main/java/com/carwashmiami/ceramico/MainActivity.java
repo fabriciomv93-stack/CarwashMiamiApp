@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.*;
 import android.provider.MediaStore;
+import android.provider.ContactsContract;
 import android.content.ContentValues;
 import android.webkit.*;
 import java.io.*;
@@ -19,7 +20,8 @@ import org.json.JSONObject;
 public class MainActivity extends Activity {
     WebView webView;
     String pendingExport;
-    static final int CREATE_BACKUP=201, OPEN_BACKUP=202;
+    static final int CREATE_BACKUP=201, OPEN_BACKUP=202, PICK_CONTACT=203;
+    String pendingContactTarget="";
 
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
@@ -138,6 +140,25 @@ public class MainActivity extends Activity {
             });
         }
 
+        @JavascriptInterface public void pickContact(String target) {
+            pendingContactTarget=target==null?"":target;
+            runOnUiThread(() -> startActivityForResult(new Intent(Intent.ACTION_PICK,ContactsContract.CommonDataKinds.Phone.CONTENT_URI),PICK_CONTACT));
+        }
+        @JavascriptInterface public void saveContact(String name,String phone) {
+            runOnUiThread(() -> {
+                try {
+                    Intent i=new Intent(Intent.ACTION_INSERT,ContactsContract.Contacts.CONTENT_URI);
+                    i.putExtra(ContactsContract.Intents.Insert.NAME,name);
+                    i.putExtra(ContactsContract.Intents.Insert.PHONE,phone);
+                    startActivity(i);
+                } catch(Exception e){jsToast("No se pudo abrir Contactos");}
+            });
+        }
+        @JavascriptInterface public void scheduleAppointment(String id,String name,String plate,String service,String date,String time) {
+            scheduleAppointmentAlarm(MainActivity.this,id,name,plate,service,date,time);
+        }
+        @JavascriptInterface public void cancelAppointment(String id) { cancelAppointmentAlarm(MainActivity.this,id); }
+
         @JavascriptInterface public boolean checkLogin(String user,String pass) {
             SharedPreferences sp=getSharedPreferences("cm_security",MODE_PRIVATE);
             String savedUser=sp.getString("user","admin");
@@ -174,6 +195,13 @@ public class MainActivity extends Activity {
         if(c!=RESULT_OK||data==null||data.getData()==null)return;
         try {
             Uri u=data.getData();
+            if(r==PICK_CONTACT) {
+                String name="",phone="";
+                android.database.Cursor cur=getContentResolver().query(u,new String[]{ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,ContactsContract.CommonDataKinds.Phone.NUMBER},null,null,null);
+                if(cur!=null){if(cur.moveToFirst()){name=cur.getString(0);phone=cur.getString(1);}cur.close();}
+                webView.evaluateJavascript("window.onContactPicked("+JSONObject.quote(pendingContactTarget)+","+JSONObject.quote(name)+","+JSONObject.quote(phone)+")",null);
+                pendingContactTarget=""; return;
+            }
             if(r==CREATE_BACKUP&&pendingExport!=null) {
                 try(OutputStream out=getContentResolver().openOutputStream(u)) {
                     out.write(pendingExport.getBytes(StandardCharsets.UTF_8));
@@ -194,6 +222,20 @@ public class MainActivity extends Activity {
 
     void jsToast(String m) {
         webView.evaluateJavascript("toast("+JSONObject.quote(m)+")",null);
+    }
+
+    public static void cancelAppointmentAlarm(Context ctx,String id){
+        try{Intent i=new Intent(ctx,ReminderReceiver.class);PendingIntent pi=PendingIntent.getBroadcast(ctx,("appt_"+id).hashCode(),i,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);((AlarmManager)ctx.getSystemService(ALARM_SERVICE)).cancel(pi);}catch(Exception ignored){}
+    }
+    public static void scheduleAppointmentAlarm(Context ctx,String id,String name,String plate,String service,String date,String time){
+        try{
+            cancelAppointmentAlarm(ctx,id);String[]d=date.split("-"),t=time.split(":");Calendar cal=Calendar.getInstance();
+            cal.set(Integer.parseInt(d[0]),Integer.parseInt(d[1])-1,Integer.parseInt(d[2]),Integer.parseInt(t[0]),Integer.parseInt(t[1]),0);cal.set(Calendar.MILLISECOND,0);cal.add(Calendar.MINUTE,-20);
+            if(cal.getTimeInMillis()<=System.currentTimeMillis())return;
+            Intent i=new Intent(ctx,ReminderReceiver.class);i.putExtra("type","appointment");i.putExtra("id","appt_"+id);i.putExtra("name",name);i.putExtra("plate",plate);i.putExtra("service",service);i.putExtra("appointmentTime",time);
+            PendingIntent pi=PendingIntent.getBroadcast(ctx,("appt_"+id).hashCode(),i,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            ((AlarmManager)ctx.getSystemService(ALARM_SERVICE)).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,cal.getTimeInMillis(),pi);
+        }catch(Exception ignored){}
     }
 
     public static void schedule(Context ctx,String id,String name,String plate,String iso) {
