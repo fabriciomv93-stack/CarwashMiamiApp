@@ -8,6 +8,8 @@ import android.net.Uri;
 import android.os.*;
 import android.provider.MediaStore;
 import android.provider.ContactsContract;
+import android.graphics.*;
+import android.graphics.pdf.PdfDocument;
 import android.content.ContentValues;
 import android.webkit.*;
 import java.io.*;
@@ -20,8 +22,9 @@ import org.json.JSONObject;
 public class MainActivity extends Activity {
     WebView webView;
     String pendingExport;
-    static final int CREATE_BACKUP=201, OPEN_BACKUP=202, PICK_CONTACT=203;
+    static final int CREATE_BACKUP=201, OPEN_BACKUP=202, PICK_CONTACT=203, PICK_RECEIPT=204, CREATE_MONTHLY_PDF=205;
     String pendingContactTarget="";
+    String pendingMonthlyPdf="";
 
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
@@ -159,6 +162,27 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void cancelAppointment(String id) { cancelAppointmentAlarm(MainActivity.this,id); }
 
+
+        @JavascriptInterface public void pickReceipt() {
+            runOnUiThread(() -> {
+                Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                i.addCategory(Intent.CATEGORY_OPENABLE);
+                i.setType("image/*");
+                startActivityForResult(i,PICK_RECEIPT);
+            });
+        }
+
+        @JavascriptInterface public void exportMonthlyPdf(String json) {
+            pendingMonthlyPdf=json==null?"":json;
+            runOnUiThread(() -> {
+                Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                i.addCategory(Intent.CATEGORY_OPENABLE);
+                i.setType("application/pdf");
+                i.putExtra(Intent.EXTRA_TITLE,"CarwashMiami_Reporte_Mensual.pdf");
+                startActivityForResult(i,CREATE_MONTHLY_PDF);
+            });
+        }
+
         @JavascriptInterface public boolean checkLogin(String user,String pass) {
             SharedPreferences sp=getSharedPreferences("cm_security",MODE_PRIVATE);
             String savedUser=sp.getString("user","admin");
@@ -195,6 +219,27 @@ public class MainActivity extends Activity {
         if(c!=RESULT_OK||data==null||data.getData()==null)return;
         try {
             Uri u=data.getData();
+            if(r==PICK_RECEIPT) {
+                try {
+                    String ext=".jpg";
+                    String typ=getContentResolver().getType(u);
+                    if(typ!=null&&typ.contains("png"))ext=".png";
+                    File dir=new File(getExternalFilesDir(Environment.DIRECTORY_PICTURES),"CarwashMiamiReceipts");
+                    if(!dir.exists())dir.mkdirs();
+                    File dst=new File(dir,"recibo_"+System.currentTimeMillis()+ext);
+                    try(InputStream in=getContentResolver().openInputStream(u);OutputStream out=new FileOutputStream(dst)){
+                        byte[]buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);
+                    }
+                    webView.evaluateJavascript("window.onReceiptPicked("+JSONObject.quote(dst.getAbsolutePath())+")",null);
+                } catch(Exception e){jsToast("No se pudo guardar el comprobante");}
+                return;
+            }
+            if(r==CREATE_MONTHLY_PDF&&pendingMonthlyPdf!=null&&!pendingMonthlyPdf.isEmpty()) {
+                try(OutputStream out=getContentResolver().openOutputStream(u)){
+                    writeMonthlyPdf(out,pendingMonthlyPdf);
+                }
+                pendingMonthlyPdf="";jsToast("Reporte PDF guardado");return;
+            }
             if(r==PICK_CONTACT) {
                 String name="",phone="";
                 android.database.Cursor cur=getContentResolver().query(u,new String[]{ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,ContactsContract.CommonDataKinds.Phone.NUMBER},null,null,null);
@@ -218,6 +263,35 @@ public class MainActivity extends Activity {
                     "window.importBackupFromAndroid("+JSONObject.quote(sb.toString())+")",null);
             }
         } catch(Exception e) { jsToast("No se pudo procesar el respaldo"); }
+    }
+
+
+    void writeMonthlyPdf(OutputStream out,String raw) throws Exception {
+        org.json.JSONObject d=new org.json.JSONObject(raw);
+        PdfDocument pdf=new PdfDocument();
+        Paint p=new Paint(1);Paint line=new Paint(1);
+        int W=595,H=842,y=48,pageNo=1;
+        PdfDocument.Page page=pdf.startPage(new PdfDocument.PageInfo.Builder(W,H,pageNo).create());
+        Canvas c=page.getCanvas();
+        p.setColor(Color.rgb(8,36,54));c.drawRect(0,0,W,72,p);
+        p.setColor(Color.WHITE);p.setTextSize(22);p.setTypeface(Typeface.DEFAULT_BOLD);c.drawText("CARWASH MIAMI",32,42,p);
+        p.setTextSize(12);p.setTypeface(Typeface.DEFAULT);c.drawText("Reporte mensual "+d.optString("month"),32,60,p);y=100;
+        String[] labs={"Ventas registradas","Cobrado","Pendiente","Gastos pagados","Resultado operativo","Ticket promedio"};
+        double[] vals={d.optDouble("sales"),d.optDouble("collected"),d.optDouble("pending"),d.optDouble("expenses"),d.optDouble("result"),d.optDouble("ticket")};
+        p.setTextSize(11);p.setColor(Color.DKGRAY);
+        for(int i=0;i<labs.length;i++){p.setTypeface(Typeface.DEFAULT_BOLD);c.drawText(labs[i],32,y,p);p.setTypeface(Typeface.DEFAULT);c.drawText("CRC "+String.format(Locale.US,"%,.0f",vals[i]),210,y,p);y+=22;}
+        y+=10;p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextSize(13);c.drawText("Formas de pago",32,y,p);y+=18;
+        org.json.JSONObject pay=d.optJSONObject("payment");double cash=pay==null?0:pay.optDouble("cash"),card=pay==null?0:pay.optDouble("card"),sinpe=pay==null?0:pay.optDouble("sinpe"),tot=Math.max(1,cash+card+sinpe);
+        Paint arc=new Paint(1);RectF oval=new RectF(32,y,132,y+100);float st=-90;
+        int[] cols={Color.rgb(53,230,149),Color.rgb(59,216,255),Color.rgb(192,121,255)};double[] pv={cash,card,sinpe};
+        for(int i=0;i<3;i++){arc.setColor(cols[i]);float sweep=(float)(pv[i]/tot*360);c.drawArc(oval,st,sweep,true,arc);st+=sweep;}
+        p.setTextSize(10);p.setColor(Color.DKGRAY);c.drawText("Efectivo "+String.format(Locale.US,"%,.0f",cash),150,y+25,p);c.drawText("Tarjeta "+String.format(Locale.US,"%,.0f",card),150,y+50,p);c.drawText("SINPE "+String.format(Locale.US,"%,.0f",sinpe),150,y+75,p);y+=125;
+        org.json.JSONObject services=d.optJSONObject("services");if(services!=null){p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextSize(13);c.drawText("Ventas estimadas por servicio",32,y,p);y+=18;
+            java.util.Iterator<String> it=services.keys();java.util.ArrayList<String> ks=new java.util.ArrayList<>();double mx=1;while(it.hasNext()){String k=it.next();ks.add(k);mx=Math.max(mx,services.optDouble(k));}
+            p.setTypeface(Typeface.DEFAULT);p.setTextSize(9);for(String k:ks){if(y>760){pdf.finishPage(page);pageNo++;page=pdf.startPage(new PdfDocument.PageInfo.Builder(W,H,pageNo).create());c=page.getCanvas();y=50;}double v=services.optDouble(k);p.setColor(Color.DKGRAY);c.drawText(k,32,y,p);Paint bp=new Paint(1);bp.setColor(Color.rgb(53,201,255));c.drawRect(150,y-8,150+(float)(260*v/mx),y,bp);c.drawText("CRC "+String.format(Locale.US,"%,.0f",v),430,y,p);y+=18;}}
+        y+=10;p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextSize(13);p.setColor(Color.DKGRAY);c.drawText("Detalle de movimientos",32,y,p);y+=18;p.setTypeface(Typeface.DEFAULT);p.setTextSize(8);
+        org.json.JSONArray rec=d.optJSONArray("records");if(rec!=null)for(int i=0;i<rec.length();i++){if(y>790){pdf.finishPage(page);pageNo++;page=pdf.startPage(new PdfDocument.PageInfo.Builder(W,H,pageNo).create());c=page.getCanvas();y=45;}org.json.JSONObject r=rec.getJSONObject(i);String s=r.optString("date")+"  "+r.optString("name")+"  "+r.optString("plate")+"  CRC "+String.format(Locale.US,"%,.0f",r.optDouble("amount"));c.drawText(s,32,y,p);y+=14;}
+        pdf.finishPage(page);pdf.writeTo(out);pdf.close();
     }
 
     void jsToast(String m) {
