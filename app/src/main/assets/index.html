@@ -188,7 +188,14 @@ const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>
 function save(){localStorage.setItem(PRODUCTS_KEY,JSON.stringify(products));localStorage.setItem(SALES_KEY,JSON.stringify(sales));localStorage.setItem(EXPENSE_KEY,JSON.stringify(expenses));localStorage.setItem(CUSTOMERS_KEY,JSON.stringify(customers));localStorage.setItem(ABONOS_KEY,JSON.stringify(abonos));localStorage.setItem(PRODUCTION_KEY,JSON.stringify(production));}
 function todayIso(){return new Date().toISOString().slice(0,10)}function colones(n){return '₡'+Number(n||0).toLocaleString('es-CR',{maximumFractionDigits:0})}function fmt(i){if(!i)return'—';let[y,m,d]=i.split('-');return `${d}/${m}/${y}`}function toast(m){let t=$('toast');t.textContent=m;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),2200)}
 function loginApp(){const u=$('loginUser').value.trim(),p=$('loginPass').value;let ok=false;try{ok=window.Android?.checkLogin?Android.checkLogin(u,p):(u==='admin'&&p==='admin')}catch(e){}if(!ok){$('loginPass').value='';toast('Usuario o contraseña incorrectos');return}$('loginScreen').classList.add('hidden');$('mainApp').classList.remove('hidden');go('home')}
-function logoutToLogin(){document.body.dataset.page='login';$('mainApp').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('loginPass').value='';page='login'}function askExit(){if(confirm('¿Deseas salir de la aplicación?'))window.Android?.exitApp?.()}
+function logoutToLogin(){document.body.dataset.page='login';$('mainApp').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('loginPass').value='';page='login'}function askExit(){
+    if(!confirm('¿Deseas salir de la aplicación?')) return;
+    try{
+        if(window.Android && Android.exitApp){
+            Android.exitApp();
+        }
+    }catch(e){}
+}
 window.handleAndroidBack=function(){if(page==='login'||page==='home'){askExit();return}if(page==='saleForm'){go('sales');return}if(page==='productForm'){go('products');return}if(page==='customerForm'||page==='customerDetail'){go('customers');return}if(page==='expenseForm'){go('expenses');return}if(page==='abonoForm'){go('sales');return}if(page==='customerSales'){go('sales');return}if(page==='security'){go('settings');return}if(page==='productionForm'){go('production');return}if(page==='backup'){go('settings');return}go('home')};
 function nav(){}function go(p){page=p;editId=null;document.body.dataset.page=p;$('hero').classList.toggle('hidden',p!=='home');render();nav();scrollTo(0,0)}function bar(title,right=''){return `<div class="titlebar"><button class="back" onclick="go('home')">‹</button><h2>${title}</h2><div>${right}</div></div>`}
 function saleAbonos(s){return abonos.filter(a=>a.status!=='anulado'&&a.saleId===s.id)}
