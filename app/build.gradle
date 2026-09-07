@@ -1,35 +1,6 @@
-plugins {
-    id 'com.android.application'
-}
-
+plugins { id 'com.android.application' }
 android {
-    namespace 'com.carwashmiami.ceramico'
-    compileSdk 35
-
-    defaultConfig {
-        applicationId "com.carwashmiami.ceramico"
-        minSdk 24
-        targetSdk 35
-        versionCode 15
-        versionName "3.9"
-    }
-
-    signingConfigs {
-        release {
-            storeFile file(System.getenv("CM_STORE_FILE") ?: "carwash-miami-release.jks")
-            storePassword System.getenv("CM_STORE_PASSWORD") ?: ""
-            keyAlias System.getenv("CM_KEY_ALIAS") ?: "carwashmiami"
-            keyPassword System.getenv("CM_KEY_PASSWORD") ?: ""
-        }
-    }
-
-    buildTypes {
-        release {
-            signingConfig signingConfigs.release
-            minifyEnabled false
-        }
-    }
-}
-
-dependencies {
+ namespace 'com.carwashmiami.ceramico'
+ compileSdk 35
+ defaultConfig { applicationId "com.carwashmiami.ceramico"; minSdk 24; targetSdk 35; versionCode 3; versionName "3.0" }
 }
